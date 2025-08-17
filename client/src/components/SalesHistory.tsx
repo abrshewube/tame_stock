@@ -14,7 +14,7 @@ interface Sale {
   createdAt: string;
 }
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://tame-stock.onrender.com/api';
 
 const SalesHistory = () => {
   const navigate = useNavigate();
