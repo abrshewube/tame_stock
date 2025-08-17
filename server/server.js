@@ -12,8 +12,8 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173', // Vite default port
-  credentials: true
+  origin: "*", // Allow all origins
+  credentials: false // Must be false if origin is "*"
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
