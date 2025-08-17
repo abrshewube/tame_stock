@@ -10,7 +10,7 @@ const productSchema = new mongoose.Schema({
   location: {
     type: String,
     required: [true, 'Location is required'],
-    enum: ['Adama', 'Addis Ababa']
+    enum: ['Adama', 'Addis Ababa', 'Chemicals']
   },
   initialBalance: {
     type: Number,

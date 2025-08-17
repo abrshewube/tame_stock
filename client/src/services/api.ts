@@ -31,8 +31,9 @@ api.interceptors.response.use(
 export interface Product {
   _id: string;
   name: string;
-  location: 'Adama' | 'Addis Ababa';
+  location: 'Adama' | 'Addis Ababa' | 'Chemicals';
   initialBalance: number;
+  price: number;
   dateAdded: string;
   balance?: number;
   totalIn?: number;
@@ -54,8 +55,9 @@ export interface Transaction {
 
 export interface ProductFormData {
   name: string;
-  location: 'Adama' | 'Addis Ababa';
+  location: 'Adama' | 'Addis Ababa' | 'Chemicals';
   initialBalance: number;
+  price: number;
 }
 
 export interface TransactionFormData {

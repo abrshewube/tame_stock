@@ -20,7 +20,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [formData, setFormData] = useState<ProductFormData>({
     name: product?.name || '',
     location: location || product?.location || 'Adama',
-    initialBalance: product?.initialBalance || 0
+    initialBalance: product?.initialBalance || 0,
+    price: product?.price || 0
   });
 
   const [loading, setLoading] = useState(false);
@@ -101,6 +102,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           >
             <option value="Adama">Adama</option>
             <option value="Addis Ababa">Addis Ababa</option>
+            <option value="Chemicals">Chemicals</option>
           </select>
         </div>
 
@@ -121,6 +123,26 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           />
           <p className="text-sm text-gray-500 mt-1">
             Enter the starting quantity for this product
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Price *
+          </label>
+          <input
+            type="number"
+            name="price"
+            value={formData.price}
+            onChange={handleChange}
+            required
+            min="0"
+            step="0.01"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="e.g., 25.50"
+          />
+          <p className="text-sm text-gray-500 mt-1">
+            Enter the price per unit in ETB
           </p>
         </div>
 

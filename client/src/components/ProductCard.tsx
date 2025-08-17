@@ -1,7 +1,7 @@
 import React from 'react';
-import { Package, Calendar, MapPin, TrendingUp, TrendingDown } from 'lucide-react';
+import { Package, Calendar, MapPin, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { Product } from '../services/api';
-import { getStockStatus, formatDate } from '../utils/stockUtils';
+import { getStockStatus, formatDate, formatCurrency } from '../utils/stockUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -64,6 +64,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
             <span className="text-gray-600">Date Added</span>
           </div>
           <span className="font-medium">{formatDate(product.dateAdded)}</span>
+        </div>
+
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center space-x-2">
+            <DollarSign className="h-4 w-4 text-gray-500" />
+            <span className="text-gray-600">Price</span>
+          </div>
+          <span className="font-medium">{formatCurrency(product.price)}</span>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Transaction, productService } from '../services/api';
-import { calculateBalance, getStockStatus, formatDate } from '../utils/stockUtils';
+import { calculateBalance, getStockStatus, formatDate, formatCurrency } from '../utils/stockUtils';
 import { 
   Calendar, 
   Package, 
@@ -9,7 +9,8 @@ import {
   X, 
   MapPin,
   Plus,
-  RotateCcw
+  RotateCcw,
+  DollarSign
 } from 'lucide-react';
 import { ProductForm } from './ProductForm';
 import { TransactionForm } from './TransactionForm';
@@ -164,7 +165,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
 
         {/* Product Summary */}
         <div className="p-6 border-b border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center space-x-2 mb-1">
                 <Package className="h-4 w-4 text-green-600" />
@@ -195,6 +196,14 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
                 <span className="text-xs text-gray-600 font-medium">Date Added</span>
               </div>
               <span className="text-lg font-bold text-gray-700">{formatDate(product.dateAdded)}</span>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center space-x-2 mb-1">
+                <DollarSign className="h-4 w-4 text-blue-600" />
+                <span className="text-xs text-blue-600 font-medium">Price</span>
+              </div>
+              <span className="text-lg font-bold text-blue-700">{formatCurrency(product.price)}</span>
             </div>
           </div>
 

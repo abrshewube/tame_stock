@@ -10,7 +10,7 @@ import { ProductForm } from './components/ProductForm';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { useProducts } from './hooks/useProducts';
 
-type Location = 'Adama' | 'Addis Ababa';
+type Location = 'Adama' | 'Addis Ababa' | 'Chemicals';
 
 const ManagementCard = ({ title, description, icon: Icon, to }: { title: string; description: string; icon: React.ElementType; to: string }) => (
   <Link to={to} className="block">
@@ -42,6 +42,12 @@ function HomePage() {
       count: products.filter(p => p.location === 'Addis Ababa').length,
       totalStock: products
         .filter(p => p.location === 'Addis Ababa')
+        .reduce((sum, p) => sum + (p.balance || 0), 0)
+    },
+    'Chemicals': {
+      count: products.filter(p => p.location === 'Chemicals').length,
+      totalStock: products
+        .filter(p => p.location === 'Chemicals')
         .reduce((sum, p) => sum + (p.balance || 0), 0)
     }
   };
@@ -82,7 +88,7 @@ function HomePage() {
         {/* Location Stats */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Inventory Overview</h2>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <a href="/location/Adama">
               <LocationCard
                 name="Adama"
@@ -96,6 +102,14 @@ function HomePage() {
                 name="Addis Ababa"
                 productCount={locationStats['Addis Ababa'].count}
                 totalStock={locationStats['Addis Ababa'].totalStock}
+                onClick={() => {}}
+              />
+            </a>
+            <a href="/location/Chemicals">
+              <LocationCard
+                name="Chemicals"
+                productCount={locationStats['Chemicals'].count}
+                totalStock={locationStats['Chemicals'].totalStock}
                 onClick={() => {}}
               />
             </a>
@@ -258,6 +272,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/location/Adama" element={<LocationPage location="Adama" />} />
         <Route path="/location/Addis Ababa" element={<LocationPage location="Addis Ababa" />} />
+        <Route path="/location/Chemicals" element={<LocationPage location="Chemicals" />} />
         <Route path="/daily-sales" element={<DailySalesPage />} />
         <Route path="/sales-history" element={<SalesHistory />} />
         <Route path="*" element={<Navigate to="/" replace />} />
