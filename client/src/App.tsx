@@ -198,19 +198,23 @@ function HomePage() {
     </div>
   )
 }
-
 function LocationPage({ location }: { location: Location }) {
-  const { products, loading, error, addProduct, updateProduct, deleteProduct, recordSale } = useProducts(location)
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const selectedProductData = selectedProduct ? products.find((p) => p._id === selectedProduct) : null
+  const { products, loading, error, addProduct, updateProduct, deleteProduct, recordSale } = useProducts(location);
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const selectedProductData = selectedProduct ? products.find((p) => p._id === selectedProduct) : null;
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <LoadingSpinner size="lg" message={`Loading ${location} inventory...`} />
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -230,76 +234,108 @@ function LocationPage({ location }: { location: Location }) {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <a href="/" className="p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div className="flex items-center space-x-4 mb-4 md:mb-0">
+            <Link to="/" className="p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all">
               <ArrowLeft className="h-5 w-5 text-gray-600" />
-            </a>
+            </Link>
             <div>
               <h1 className="text-3xl font-bold text-gray-800">{location} Inventory</h1>
-              <p className="text-gray-600">{products.length} products in stock</p>
+              <p className="text-gray-600">
+                {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} in stock
+              </p>
             </div>
           </div>
 
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Add Product</span>
-          </button>
+          {/* Search and Add Button */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <input
+              type="text"
+              placeholder="Search products..."
+              className="w-full sm:w-64 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Add Product</span>
+            </button>
+          </div>
         </div>
-        {/* Products Grid */}
-        {products.length === 0 ? (
+
+        {/* Products Grid or Empty State */}
+        {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <div className="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto">
               <Seedling className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-800 mb-2">No Products Yet</h3>
-              <p className="text-gray-600 mb-4">Start by adding your first product to this location.</p>
+              <h3 className="text-lg font-medium text-gray-800 mb-2">
+                {searchTerm ? "No matching products found" : "No Products Yet"}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm ? "Try a different search term." : "Start by adding your first product to this location."}
+              </p>
               <button
                 onClick={() => setShowAddForm(true)}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                Add First Product
+                Add Product
               </button>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product) => (
-              <ProductCard key={product._id} product={product} onClick={() => setSelectedProduct(product._id)} />
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                onClick={() => setSelectedProduct(product._id)}
+              />
             ))}
           </div>
         )}
+
         {/* Product Details Modal */}
         {selectedProductData && (
-          <ProductDetails
-            product={selectedProductData}
-            onClose={() => setSelectedProduct(null)}
-            onUpdate={updateProduct}
-            onDelete={deleteProduct}
-            onSale={recordSale}
-          />
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <ProductDetails
+                product={selectedProductData}
+                onClose={() => setSelectedProduct(null)}
+                onUpdate={updateProduct}
+                onDelete={deleteProduct}
+                onSale={recordSale}
+              />
+            </div>
+          </div>
         )}
+
         {/* Add Product Modal */}
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <ProductForm location={location} onSubmit={addProduct} onCancel={() => setShowAddForm(false)} />
+              <ProductForm
+                location={location}
+                onSubmit={addProduct}
+                onCancel={() => setShowAddForm(false)}
+              />
             </div>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
+
 
 function App() {
   return (
