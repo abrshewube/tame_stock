@@ -189,12 +189,19 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            {/* <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center space-x-2 mb-1">
                 <Package className="h-4 w-4 text-green-600" />
                 <span className="text-xs text-green-600 font-medium">Total In</span>
               </div>
               <span className="text-lg font-bold text-green-700">{(product.totalIn || 0).toLocaleString()}</span>
+            </div> */}
+             <div className={`p-4 rounded-lg border ${dynamicStockStatus.borderColor} ${dynamicStockStatus.bgColor}`}>
+              <div className="flex items-center space-x-2 mb-1">
+                <Calendar className={`h-4 w-4 ${dynamicStockStatus.textColor}`} />
+                <span className={`text-xs font-medium ${dynamicStockStatus.textColor}`}>Stock as of {formatDate(selectedDate)}</span>
+              </div>
+              <span className={`text-lg font-bold ${dynamicStockStatus.textColor}`}>{dynamicBalance.toLocaleString()}</span>
             </div>
 
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
@@ -205,21 +212,15 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
               <span className="text-lg font-bold text-red-700">{(product.totalOut || 0).toLocaleString()}</span>
             </div>
 
-            <div className={`p-4 rounded-lg border ${stockStatus.borderColor} ${stockStatus.bgColor}`}>
+            {/* <div className={`p-4 rounded-lg border ${stockStatus.borderColor} ${stockStatus.bgColor}`}>
               <div className="flex items-center space-x-2 mb-1">
                 <Package className={`h-4 w-4 ${stockStatus.textColor}`} />
                 <span className={`text-xs font-medium ${stockStatus.textColor}`}>Current Balance</span>
               </div>
               <span className={`text-lg font-bold ${stockStatus.textColor}`}>{balance.toLocaleString()}</span>
-            </div>
+            </div> */}
 
-            <div className={`p-4 rounded-lg border ${dynamicStockStatus.borderColor} ${dynamicStockStatus.bgColor}`}>
-              <div className="flex items-center space-x-2 mb-1">
-                <Calendar className={`h-4 w-4 ${dynamicStockStatus.textColor}`} />
-                <span className={`text-xs font-medium ${dynamicStockStatus.textColor}`}>Stock as of {formatDate(selectedDate)}</span>
-              </div>
-              <span className={`text-lg font-bold ${dynamicStockStatus.textColor}`}>{dynamicBalance.toLocaleString()}</span>
-            </div>
+           
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="flex items-center space-x-2 mb-1">
