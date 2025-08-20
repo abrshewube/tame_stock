@@ -9,7 +9,7 @@ const router = express.Router();
 // Record a new sale
 router.post('/', async (req, res) => {
   try {
-    const { productId, productName, date, location, quantity, price } = req.body;
+    const { productId, productName, date, location, quantity, price,description } = req.body;
     
     // Validate input
     if (!productId || !productName || !date || !location || !quantity || price === undefined) {
@@ -54,7 +54,8 @@ router.post('/', async (req, res) => {
       quantity,
       price,
       total: quantity * price,
-      transactionId: transaction._id
+      transactionId: transaction._id,
+      description
     });
 
     await sale.save();

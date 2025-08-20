@@ -37,6 +37,11 @@ const saleSchema = new mongoose.Schema({
     required: [true, 'Total amount is required'],
     min: [0, 'Total amount cannot be negative']
   },
+  description: {
+    type: String,
+    
+    trim: true
+  },
   transactionId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Transaction',
