@@ -30,7 +30,8 @@ router.get('/', async (req, res) => {
       filter.name = { $regex: search, $options: 'i' };
     }
 
-    const products = await Product.find(filter).sort({ createdAt: -1 });
+    // Sort products alphabetically by name
+    const products = await Product.find(filter).sort({ name: 1 });
     
     // Calculate balance for each product
     const productsWithBalance = await Promise.all(
@@ -64,6 +65,7 @@ router.get('/', async (req, res) => {
     });
   }
 });
+
 
 // GET /api/products/location/:location - Get products by location
 router.get('/location/:location', async (req, res) => {
