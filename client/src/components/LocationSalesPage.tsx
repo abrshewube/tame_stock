@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Package, DollarSign, MapPin } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Package, DollarSign, MapPin, Edit2, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 interface Product {
@@ -40,7 +40,29 @@ interface SaleFormState {
   description: string;
 }
 
+interface StockFormState {
+  productId: string;
+  quantity: string;
+  date: string;
+  description: string;
+}
+
 interface SaleFormProps {
+  products: Product[];
+  onSubmit: (data: SaleFormData, saleDate: string) => Promise<boolean>;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}
+
+interface StockFormProps {
+  products: Product[];
+  onSubmit: (data: { productId: string; quantity: number; date: string; description?: string }) => Promise<boolean>;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}
+
+interface EditSaleFormProps {
+  sale: Sale;
   products: Product[];
   onSubmit: (data: SaleFormData, saleDate: string) => Promise<boolean>;
   onCancel: () => void;
@@ -54,6 +76,9 @@ const LocationSalesPage = () => {
   const location = useLocation().state?.location;
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showSaleForm, setShowSaleForm] = useState(false);
+  const [showStockForm, setShowStockForm] = useState(false);
+  const [showEditSaleForm, setShowEditSaleForm] = useState(false);
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -87,7 +112,6 @@ const LocationSalesPage = () => {
       const response = await axios.get(`${API_URL}/sales?location=${location}&date=${selectedDate}`);
       const salesData = response.data.docs || response.data.data || [];
       setSales(salesData);
-
       const allSalesResponse = await axios.get(`${API_URL}/sales?location=${location}`);
       const allSales = allSalesResponse.data.docs || allSalesResponse.data.data || [];
       const dates = [...new Set(allSales.map((sale: Sale) => sale.date))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
@@ -106,7 +130,6 @@ const LocationSalesPage = () => {
     try {
       setIsSubmitting(true);
       setError('');
-
       const saleData = {
         ...formData,
         date: saleDate,
@@ -114,17 +137,87 @@ const LocationSalesPage = () => {
         total: formData.quantity * formData.price
       };
       await axios.post(`${API_URL}/sales`, saleData);
-
       setSuccess('Sale recorded successfully!');
       setShowSaleForm(false);
-
       fetchProducts();
       fetchSales();
-
       return true;
     } catch (err: any) {
       console.error('Error recording sale:', err);
       const errorMessage = err.response?.data?.message || 'Failed to record sale. Please try again.';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAddStock = async (formData: { productId: string; quantity: number; date: string; description?: string }) => {
+    try {
+      setIsSubmitting(true);
+      setError('');
+      const stockData = {
+        productId: formData.productId,
+        type: 'in',
+        quantity: formData.quantity,
+        date: formData.date,
+        description: formData.description,
+      };
+      await axios.post(`${API_URL}/products/${formData.productId}/transactions`, stockData);
+      setSuccess('Stock added successfully!');
+      setShowStockForm(false);
+      fetchProducts();
+      return true;
+    } catch (err: any) {
+      console.error('Error adding stock:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to add stock. Please try again.';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditSale = (sale: Sale) => {
+    setSelectedSale(sale);
+    setShowEditSaleForm(true);
+  };
+
+  const handleDeleteSale = async (saleId: string) => {
+    if (!window.confirm('Are you sure you want to delete this sale?')) return;
+    try {
+      setIsSubmitting(true);
+      await axios.delete(`${API_URL}/sales/${saleId}`);
+      setSuccess('Sale deleted successfully!');
+      fetchSales();
+    } catch (err: any) {
+      console.error('Error deleting sale:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to delete sale. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateSale = async (formData: SaleFormData, saleDate: string) => {
+    try {
+      setIsSubmitting(true);
+      setError('');
+      const saleData = {
+        ...formData,
+        date: saleDate,
+        location: location!,
+        total: formData.quantity * formData.price
+      };
+      await axios.put(`${API_URL}/sales/${selectedSale?._id}`, saleData);
+      setSuccess('Sale updated successfully!');
+      setShowEditSaleForm(false);
+      fetchProducts();
+      fetchSales();
+      return true;
+    } catch (err: any) {
+      console.error('Error updating sale:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to update sale. Please try again.';
       setError(errorMessage);
       return false;
     } finally {
@@ -187,20 +280,28 @@ const LocationSalesPage = () => {
                 <Plus className="h-5 w-5 mr-2" />
                 Add Sale
               </button>
+              <button
+                onClick={() => setShowStockForm(true)}
+                className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Stock
+              </button>
             </div>
           </div>
+
           {/* Error and Success Messages */}
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               {error}
             </div>
           )}
-
           {success && (
             <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
               {success}
             </div>
           )}
+
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Available Dates List */}
             <div className="lg:col-span-1">
@@ -209,7 +310,6 @@ const LocationSalesPage = () => {
                   <Calendar className="h-5 w-5 mr-2 text-blue-600" />
                   Available Dates
                 </h2>
-
                 {availableDates.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">No sales recorded yet</p>
                 ) : (
@@ -239,6 +339,7 @@ const LocationSalesPage = () => {
                 )}
               </div>
             </div>
+
             {/* Sales for Selected Date */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow-md p-6">
@@ -289,6 +390,20 @@ const LocationSalesPage = () => {
                             <div className="text-xs text-gray-500">
                               {new Date(sale.createdAt).toLocaleTimeString()}
                             </div>
+                            <div className="flex space-x-2 mt-2">
+                              <button
+                                onClick={() => handleEditSale(sale)}
+                                className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                              >
+                                <Edit2 className="h-4 w-4 mr-1" /> Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSale(sale._id)}
+                                className="text-red-600 hover:text-red-800 text-sm flex items-center"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" /> Delete
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -298,32 +413,57 @@ const LocationSalesPage = () => {
               </div>
             </div>
           </div>
-        </div>
-        {/* Sale Form Modal */}
-        {showSaleForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <SaleForm
-                products={products}
-                onSubmit={handleAddSale}
-                onCancel={() => setShowSaleForm(false)}
-                isSubmitting={isSubmitting}
-              />
+
+          {/* Sale Form Modal */}
+          {showSaleForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <SaleForm
+                  products={products}
+                  onSubmit={handleAddSale}
+                  onCancel={() => setShowSaleForm(false)}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Stock Form Modal */}
+          {showStockForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <StockForm
+                  products={products}
+                  onSubmit={handleAddStock}
+                  onCancel={() => setShowStockForm(false)}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Edit Sale Form Modal */}
+          {showEditSaleForm && selectedSale && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <EditSaleForm
+                  sale={selectedSale}
+                  products={products}
+                  onSubmit={handleUpdateSale}
+                  onCancel={() => setShowEditSaleForm(false)}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
 // Sale Form Component
-const SaleForm: React.FC<SaleFormProps> = ({
-  products,
-  onSubmit,
-  onCancel,
-  isSubmitting
-}) => {
+const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSubmitting }) => {
   const [formData, setFormData] = useState<SaleFormState>({
     productId: '',
     productName: '',
@@ -332,22 +472,18 @@ const SaleForm: React.FC<SaleFormProps> = ({
     description: ''
   });
   const [saleDate, setSaleDate] = useState<string>(new Date().toISOString().split('T')[0]);
-
   const selectedProduct = products.find(p => p._id === formData.productId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!formData.productId || !formData.quantity || !formData.price) {
       return;
     }
-
     const success = await onSubmit({
       ...formData,
       quantity: parseInt(formData.quantity),
       price: parseFloat(formData.price)
     }, saleDate);
-
     if (success) {
       setFormData({
         productId: '',
@@ -374,18 +510,13 @@ const SaleForm: React.FC<SaleFormProps> = ({
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-800">Add New Sale</h3>
-        <button
-          onClick={onCancel}
-          className="text-gray-400 hover:text-gray-600"
-        >
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
           ✕
         </button>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
           <input
             type="date"
             value={saleDate}
@@ -395,9 +526,7 @@ const SaleForm: React.FC<SaleFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Product
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
           <select
             value={formData.productId}
             onChange={(e) => handleProductChange(e.target.value)}
@@ -413,9 +542,7 @@ const SaleForm: React.FC<SaleFormProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -425,9 +552,7 @@ const SaleForm: React.FC<SaleFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Quantity
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
           <input
             type="number"
             min="1"
@@ -445,9 +570,7 @@ const SaleForm: React.FC<SaleFormProps> = ({
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Price per Unit (ETB)
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (ETB)</label>
           <input
             type="number"
             min="0.01"
@@ -484,6 +607,267 @@ const SaleForm: React.FC<SaleFormProps> = ({
             }`}
           >
             {isSubmitting ? 'Processing...' : 'Record Sale'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// Stock Form Component
+const StockForm: React.FC<StockFormProps> = ({ products, onSubmit, onCancel, isSubmitting }) => {
+  const [formData, setFormData] = useState<StockFormState>({
+    productId: '',
+    quantity: '',
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.productId || !formData.quantity) {
+      return;
+    }
+    const success = await onSubmit({
+      productId: formData.productId,
+      quantity: parseInt(formData.quantity),
+      date: formData.date,
+      description: formData.description,
+    });
+    if (success) {
+      setFormData({
+        productId: '',
+        quantity: '',
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+      });
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Add Stock</h3>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+          ✕
+        </button>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+          <select
+            value={formData.productId}
+            onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          >
+            <option value="">Select a product</option>
+            {products.map((product) => (
+              <option key={product._id} value={product._id}>
+                {product.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+          <input
+            type="number"
+            min="1"
+            value={formData.quantity}
+            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            rows={3}
+            placeholder="Add any additional details..."
+          />
+        </div>
+        <div className="flex space-x-3 pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting || !formData.productId || !formData.quantity}
+            className={`flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors ${
+              isSubmitting || !formData.productId || !formData.quantity ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            {isSubmitting ? 'Processing...' : 'Add Stock'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// Edit Sale Form Component
+const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, onCancel, isSubmitting }) => {
+  const [formData, setFormData] = useState<SaleFormState>({
+    productId: sale.productId,
+    productName: sale.productName,
+    quantity: sale.quantity.toString(),
+    price: sale.price.toString(),
+    description: sale.description || '',
+  });
+  const [saleDate, setSaleDate] = useState<string>(sale.date.split('T')[0]);
+  const selectedProduct = products.find(p => p._id === formData.productId);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.productId || !formData.quantity || !formData.price) {
+      return;
+    }
+    const success = await onSubmit({
+      ...formData,
+      quantity: parseInt(formData.quantity),
+      price: parseFloat(formData.price)
+    }, saleDate);
+    if (success) {
+      setFormData({
+        productId: '',
+        productName: '',
+        quantity: '',
+        price: '',
+        description: ''
+      });
+      setSaleDate(new Date().toISOString().split('T')[0]);
+    }
+  };
+
+  const handleProductChange = (productId: string) => {
+    const product = products.find(p => p._id === productId);
+    setFormData(prev => ({
+      ...prev,
+      productId,
+      productName: product?.name || '',
+      price: product?.price.toString() || ''
+    }));
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Edit Sale</h3>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+          ✕
+        </button>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input
+            type="date"
+            value={saleDate}
+            onChange={(e) => setSaleDate(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+          <select
+            value={formData.productId}
+            onChange={(e) => handleProductChange(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          >
+            <option value="">Select a product</option>
+            {products.map((product) => (
+              <option key={product._id} value={product._id}>
+                {product.name} (Stock: {product.balance})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            rows={3}
+            placeholder="Add any additional details about this sale..."
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+          <input
+            type="number"
+            min="1"
+            max={selectedProduct?.balance || 1}
+            value={formData.quantity}
+            onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+            disabled={!selectedProduct}
+          />
+          {selectedProduct && (
+            <p className="text-xs text-gray-500 mt-1">
+              Available stock: {selectedProduct.balance}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (ETB)</label>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={formData.price}
+            onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+            disabled={!selectedProduct}
+          />
+        </div>
+        {formData.quantity && formData.price && (
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-800">
+              Total: ETB {(parseFloat(formData.quantity) * parseFloat(formData.price)).toFixed(2)}
+            </p>
+          </div>
+        )}
+        <div className="flex space-x-3 pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting || !formData.productId || !formData.quantity || !formData.price}
+            className={`flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors ${
+              isSubmitting || !formData.productId || !formData.quantity || !formData.price
+                ? 'opacity-50 cursor-not-allowed'
+                : ''
+            }`}
+          >
+            {isSubmitting ? 'Processing...' : 'Update Sale'}
           </button>
         </div>
       </form>
