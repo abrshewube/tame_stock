@@ -80,3 +80,47 @@ export const getStockColor = (balance: number, totalIn: number): string => {
   if (percentage <= 50) return 'text-amber-500';
   return 'text-green-600';
 };
+
+export const calculateDynamicStock = (
+  initialBalance: number,
+  transactions: any[],
+  sales: any[],
+  targetDate?: string
+): number => {
+  let balance = initialBalance;
+  
+  // Filter transactions and sales by date if targetDate is provided
+  const relevantTransactions = targetDate 
+    ? transactions.filter(t => new Date(t.date) <= new Date(targetDate))
+    : transactions;
+  
+  const relevantSales = targetDate
+    ? sales.filter(s => new Date(s.date) <= new Date(targetDate))
+    : sales;
+  
+  // Apply transactions (in/out)
+  relevantTransactions.forEach(transaction => {
+    if (transaction.type === 'in') {
+      balance += transaction.quantity;
+    } else if (transaction.type === 'out') {
+      balance -= transaction.quantity;
+    }
+  });
+  
+  // Apply sales (reduce stock)
+  relevantSales.forEach(sale => {
+    balance -= sale.quantity;
+  });
+  
+  return Math.max(0, balance);
+};
+
+export const getStockStatusForDate = (
+  initialBalance: number,
+  transactions: any[],
+  sales: any[],
+  targetDate: string
+) => {
+  const balance = calculateDynamicStock(initialBalance, transactions, sales, targetDate);
+  return getStockStatus(balance, initialBalance);
+};

@@ -1,5 +1,6 @@
 import React from 'react';
-import { MapPin, Package, TrendingUp } from 'lucide-react';
+import { MapPin, Package, TrendingUp, ShoppingCart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface LocationCardProps {
   name: string;
@@ -15,10 +16,7 @@ export const LocationCard: React.FC<LocationCardProps> = ({
   onClick
 }) => {
   return (
-    <div
-      onClick={onClick}
-      className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 group"
-    >
+    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 group">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
@@ -46,8 +44,19 @@ export const LocationCard: React.FC<LocationCardProps> = ({
         </div>
       </div>
       
-      <div className="mt-4 pt-4 border-t border-gray-100">
-        <span className="text-sm text-blue-600 font-medium">View Inventory →</span>
+      <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+        <button
+          onClick={onClick}
+          className="w-full text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors"
+        >
+          View Inventory →
+        </button>
+        <Link
+          to={`/sales/${name}`}
+          className="block w-full text-sm text-green-600 font-medium hover:text-green-800 transition-colors"
+        >
+          Manage Sales →
+        </Link>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ export interface SaleData {
   location: string;
   quantity: number;
   price: number;
+  description?: string;
 }
 
 export const recordSale = async (saleData: SaleData) => {

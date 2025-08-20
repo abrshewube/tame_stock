@@ -27,6 +27,7 @@ const DailySalesPage = () => {
   const [selectedProduct, setSelectedProduct] = useState<{ _id: string; name: string; price: number } | null>(null);
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
+  const [description, setDescription] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,7 +93,8 @@ const DailySalesPage = () => {
       productId: selectedProduct._id,
       productName: selectedProduct.name,
       quantity: quantityNum,
-      price: priceNum
+      price: priceNum,
+      description
     };
 
     try {
@@ -113,6 +115,7 @@ const DailySalesPage = () => {
       // Reset form
       setQuantity('');
       setPrice('');
+      setDescription('');
       setSelectedProduct(null);
       
       // Refresh products to update stock
@@ -234,6 +237,19 @@ const DailySalesPage = () => {
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   required
                   disabled={!selectedProduct}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="Add any additional details about this sale..."
                 />
               </div>
 

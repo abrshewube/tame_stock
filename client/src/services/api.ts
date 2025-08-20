@@ -53,6 +53,20 @@ export interface Transaction {
   updatedAt: string;
 }
 
+export interface Sale {
+  _id: string;
+  productId: string;
+  productName: string;
+  date: string;
+  location: string;
+  quantity: number;
+  price: number;
+  description?: string;
+  total: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProductFormData {
   name: string;
   location: 'Adama' | 'Addis Ababa' | 'Chemicals';

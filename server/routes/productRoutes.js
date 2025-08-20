@@ -43,7 +43,6 @@ router.get('/', async (req, res) => {
           .filter(t => t.type === 'out')
           .reduce((sum, t) => sum + t.quantity, 0);
         const balance = product.initialBalance + totalIn - totalOut;
-        
         return {
           ...product.toObject(),
           balance,
@@ -52,7 +51,6 @@ router.get('/', async (req, res) => {
         };
       })
     );
-
     res.json({
       success: true,
       data: productsWithBalance,

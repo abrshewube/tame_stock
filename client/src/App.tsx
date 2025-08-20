@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-ro
 import { Scaling as Seedling, ArrowLeft, Plus, Package, ShoppingCart } from 'lucide-react';
 import DailySalesPage from './components/DailySalesPage';
 import SalesHistory from './components/SalesHistory';
+import LocationSalesPage from './components/LocationSalesPage';
 import { LocationCard } from './components/LocationCard';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetails } from './components/ProductDetails';
@@ -30,7 +31,7 @@ const ManagementCard = ({ title, description, icon: Icon, to }: { title: string;
 
 function HomePage() {
   const { products } = useProducts();
-  
+
   const locationStats = {
     'Adama': {
       count: products.filter(p => p.location === 'Adama').length,
@@ -56,27 +57,9 @@ function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center items-center space-x-3 mb-4">
-            <div className="p-3 bg-green-100 rounded-full">
-              <Seedling className="h-8 w-8 text-green-600" />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-800">Seed Management System</h1>
-          </div>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Efficiently manage your seed inventory and sales across multiple locations. 
-            Track stock levels, record sales, and maintain optimal inventory levels.
-          </p>
-        </div>
-
+        
         {/* Management Options */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
-          {/* <ManagementCard
-            title="Stock Management"
-            description="Manage your inventory, view stock levels, and update product information."
-            icon={Package}
-            to="/location/Adama"
-          /> */}
           <ManagementCard
             title="Daily Sales"
             description="Record daily sales transactions and track your business performance."
@@ -84,7 +67,6 @@ function HomePage() {
             to="/daily-sales"
           />
         </div>
-
         {/* Location Stats */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Inventory Overview</h2>
@@ -114,31 +96,79 @@ function HomePage() {
               />
             </a>
           </div>
-        </div>
 
-        {/* Quick Stats */}
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          <div className="bg-white p-4 rounded-lg shadow-md text-center">
-            <p className="text-2xl font-bold text-gray-800">{products.length}</p>
-            <p className="text-sm text-gray-600">Total Products</p>
+          {/* Sales Management Section */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Sales Management</h2>
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <Link
+                to="/sales/Adama"
+                state={{ location: 'Adama' }}
+                className="block"
+              >
+                <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 p-6 text-center">
+                  <div className="p-3 bg-green-100 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
+                    <ShoppingCart className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Adama Sales</h3>
+                  <p className="text-gray-600 text-sm">Manage sales and track performance</p>
+                </div>
+              </Link>
+
+              <Link
+                to="/sales/Addis Ababa"
+                state={{ location: 'Addis Ababa' }}
+                className="block"
+              >
+                <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 p-6 text-center">
+                  <div className="p-3 bg-blue-100 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
+                    <ShoppingCart className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Addis Ababa Sales</h3>
+                  <p className="text-gray-600 text-sm">Manage sales and track performance</p>
+                </div>
+              </Link>
+
+              <Link
+                to="/sales/Chemicals"
+                state={{ location: 'Chemicals' }}
+                className="block"
+              >
+                <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 p-6 text-center">
+                  <div className="p-3 bg-purple-100 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
+                    <ShoppingCart className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Chemicals Sales</h3>
+                  <p className="text-gray-600 text-sm">Manage sales and track performance</p>
+                </div>
+              </Link>
+            </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-md text-center">
-            <p className="text-2xl font-bold text-green-600">
-              {products.reduce((sum, p) => sum + (p.balance || 0), 0).toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600">Total Stock</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-md text-center">
-            <p className="text-2xl font-bold text-blue-600">
-              {products.reduce((sum, p) => sum + (p.totalOut || 0), 0).toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600">Total Out</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-md text-center">
-            <p className="text-2xl font-bold text-purple-600">
-              {products.filter(p => (p.balance || 0) === 0).length}
-            </p>
-            <p className="text-sm text-gray-600">Out of Stock</p>
+
+          {/* Quick Stats */}
+          <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            <div className="bg-white p-4 rounded-lg shadow-md text-center">
+              <p className="text-2xl font-bold text-gray-800">{products.length}</p>
+              <p className="text-sm text-gray-600">Total Products</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-md text-center">
+              <p className="text-2xl font-bold text-green-600">
+                {products.reduce((sum, p) => sum + (p.balance || 0), 0).toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-600">Total Stock</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-md text-center">
+              <p className="text-2xl font-bold text-blue-600">
+                {products.reduce((sum, p) => sum + (p.totalOut || 0), 0).toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-600">Total Out</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-md text-center">
+              <p className="text-2xl font-bold text-purple-600">
+                {products.filter(p => (p.balance || 0) === 0).length}
+              </p>
+              <p className="text-sm text-gray-600">Out of Stock</p>
+            </div>
           </div>
         </div>
       </div>
@@ -150,7 +180,6 @@ function LocationPage({ location }: { location: Location }) {
   const { products, loading, error, addProduct, updateProduct, deleteProduct, recordSale } = useProducts(location);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-
   const selectedProductData = selectedProduct ? products.find(p => p._id === selectedProduct) : null;
 
   if (loading) {
@@ -187,7 +216,7 @@ function LocationPage({ location }: { location: Location }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
-            <a 
+            <a
               href="/"
               className="p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all"
             >
@@ -198,7 +227,7 @@ function LocationPage({ location }: { location: Location }) {
               <p className="text-gray-600">{products.length} products in stock</p>
             </div>
           </div>
-          
+
           <button
             onClick={() => setShowAddForm(true)}
             className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md"
@@ -207,7 +236,6 @@ function LocationPage({ location }: { location: Location }) {
             <span>Add Product</span>
           </button>
         </div>
-
         {/* Products Grid */}
         {products.length === 0 ? (
           <div className="text-center py-12">
@@ -236,7 +264,6 @@ function LocationPage({ location }: { location: Location }) {
             ))}
           </div>
         )}
-
         {/* Product Details Modal */}
         {selectedProductData && (
           <ProductDetails
@@ -247,7 +274,6 @@ function LocationPage({ location }: { location: Location }) {
             onSale={recordSale}
           />
         )}
-
         {/* Add Product Modal */}
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -273,6 +299,7 @@ function App() {
         <Route path="/location/Adama" element={<LocationPage location="Adama" />} />
         <Route path="/location/Addis Ababa" element={<LocationPage location="Addis Ababa" />} />
         <Route path="/location/Chemicals" element={<LocationPage location="Chemicals" />} />
+        <Route path="/sales/:location" element={<LocationSalesPage />} />
         <Route path="/daily-sales" element={<DailySalesPage />} />
         <Route path="/sales-history" element={<SalesHistory />} />
         <Route path="*" element={<Navigate to="/" replace />} />

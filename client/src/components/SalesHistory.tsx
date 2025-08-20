@@ -10,11 +10,12 @@ interface Sale {
   location: string;
   quantity: number;
   price: number;
+  description?: string;
   total: number;
   createdAt: string;
 }
 
-const API_URL = 'https://tame-stock.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 const SalesHistory = () => {
   const navigate = useNavigate();
@@ -203,7 +204,12 @@ const SalesHistory = () => {
                     {sales.map((sale) => (
                       <tr key={sale._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {sale.productName}
+                          <div>
+                            <div className="font-medium">{sale.productName}</div>
+                            {sale.description && (
+                              <div className="text-xs text-gray-500 mt-1">{sale.description}</div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(sale.date || sale.createdAt)}

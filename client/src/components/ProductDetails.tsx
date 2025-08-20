@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Transaction, productService } from '../services/api';
-import { calculateBalance, getStockStatus, formatDate, formatCurrency } from '../utils/stockUtils';
+import { calculateBalance, getStockStatus, formatDate, formatCurrency, calculateDynamicStock } from '../utils/stockUtils';
 import { 
   Calendar, 
   Package, 
@@ -39,9 +39,19 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const balance = product.balance || 0;
   const stockStatus = getStockStatus(balance, (product.totalIn || 0));
+  
+  // Calculate dynamic stock for selected date
+  const dynamicBalance = calculateDynamicStock(
+    product.initialBalance || 0,
+    transactions,
+    [], // We'll need to fetch sales data for this
+    selectedDate
+  );
+  const dynamicStockStatus = getStockStatus(dynamicBalance, (product.totalIn || 0));
 
   useEffect(() => {
     fetchTransactions();
@@ -165,7 +175,20 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
 
         {/* Product Summary */}
         <div className="p-6 border-b border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* Date Selector for Dynamic Stock */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              View Stock as of Date
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center space-x-2 mb-1">
                 <Package className="h-4 w-4 text-green-600" />
@@ -188,6 +211,14 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
                 <span className={`text-xs font-medium ${stockStatus.textColor}`}>Current Balance</span>
               </div>
               <span className={`text-lg font-bold ${stockStatus.textColor}`}>{balance.toLocaleString()}</span>
+            </div>
+
+            <div className={`p-4 rounded-lg border ${dynamicStockStatus.borderColor} ${dynamicStockStatus.bgColor}`}>
+              <div className="flex items-center space-x-2 mb-1">
+                <Calendar className={`h-4 w-4 ${dynamicStockStatus.textColor}`} />
+                <span className={`text-xs font-medium ${dynamicStockStatus.textColor}`}>Stock as of {formatDate(selectedDate)}</span>
+              </div>
+              <span className={`text-lg font-bold ${dynamicStockStatus.textColor}`}>{dynamicBalance.toLocaleString()}</span>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
