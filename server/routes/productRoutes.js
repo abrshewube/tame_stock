@@ -31,7 +31,11 @@ router.get('/', async (req, res) => {
     }
 
     // Sort products alphabetically by name
-    const products = await Product.find(filter).sort({ name: 1 });
+    // Sort products alphabetically A → Z, case-insensitive
+  const products = await Product.find(filter)
+  .collation({ locale: 'en', strength: 1 })
+  .sort({ name: 1 });
+
     
     // Calculate balance for each product
     const productsWithBalance = await Promise.all(
