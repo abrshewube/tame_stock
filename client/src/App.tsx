@@ -1,193 +1,235 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
-import { Scaling as Seedling, ArrowLeft, Plus, Package, ShoppingCart } from 'lucide-react';
-import DailySalesPage from './components/DailySalesPage';
-import SalesHistory from './components/SalesHistory';
-import LocationSalesPage from './components/LocationSalesPage';
-import { LocationCard } from './components/LocationCard';
-import { ProductCard } from './components/ProductCard';
-import { ProductDetails } from './components/ProductDetails';
-import { ProductForm } from './components/ProductForm';
-import { LoadingSpinner } from './components/LoadingSpinner';
-import { useProducts } from './hooks/useProducts';
 
-type Location = 'Adama' | 'Addis Ababa' | 'Chemicals';
+import type React from "react"
+import { useState } from "react"
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom"
+import { SproutIcon as Seedling, ArrowLeft, Plus, Package, ShoppingCart, BarChart3, TrendingUp } from "lucide-react"
+import DailySalesPage from "./components/DailySalesPage"
+import SalesHistory from "./components/SalesHistory"
+import LocationSalesPage from "./components/LocationSalesPage"
+import { LocationCard } from "./components/LocationCard"
+import { ProductCard } from "./components/ProductCard"
+import { ProductDetails } from "./components/ProductDetails"
+import { ProductForm } from "./components/ProductForm"
+import { LoadingSpinner } from "./components/LoadingSpinner"
+import { useProducts } from "./hooks/useProducts"
 
-const ManagementCard = ({ title, description, icon: Icon, to }: { title: string; description: string; icon: React.ElementType; to: string }) => (
-  <Link to={to} className="block">
-    <div className="h-full bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="p-6">
-        <div className="flex items-center mb-4">
-          <div className="p-3 bg-blue-100 rounded-full mr-4">
-            <Icon className="h-6 w-6 text-blue-600" />
+type Location = "Adama" | "Addis Ababa" | "Chemicals"
+
+const ManagementCard = ({
+  title,
+  description,
+  icon: Icon,
+  to,
+}: { title: string; description: string; icon: React.ElementType; to: string }) => (
+  <Link to={to} className="block group">
+    <div className="h-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-blue-200 transition-all duration-300 group-hover:-translate-y-1">
+      <div className="p-8">
+        <div className="flex items-center mb-6">
+          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl mr-5 group-hover:from-blue-100 group-hover:to-indigo-200 transition-colors">
+            <Icon className="h-7 w-7 text-blue-600" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
+          <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{title}</h3>
         </div>
-        <p className="text-gray-600">{description}</p>
+        <p className="text-gray-600 leading-relaxed">{description}</p>
       </div>
     </div>
   </Link>
-);
+)
 
-function HomePage() {
-  const { products } = useProducts();
-
-  const locationStats = {
-    'Adama': {
-      count: products.filter(p => p.location === 'Adama').length,
-      totalStock: products
-        .filter(p => p.location === 'Adama')
-        .reduce((sum, p) => sum + (p.balance || 0), 0)
-    },
-    'Addis Ababa': {
-      count: products.filter(p => p.location === 'Addis Ababa').length,
-      totalStock: products
-        .filter(p => p.location === 'Addis Ababa')
-        .reduce((sum, p) => sum + (p.balance || 0), 0)
-    },
-    'Chemicals': {
-      count: products.filter(p => p.location === 'Chemicals').length,
-      totalStock: products
-        .filter(p => p.location === 'Chemicals')
-        .reduce((sum, p) => sum + (p.balance || 0), 0)
-    }
-  };
+const StatCard = ({
+  value,
+  label,
+  color = "gray",
+  icon: Icon,
+}: { value: string | number; label: string; color?: string; icon?: React.ElementType }) => {
+  const colorClasses = {
+    gray: "text-gray-800 bg-gray-50",
+    green: "text-green-600 bg-green-50",
+    blue: "text-blue-600 bg-blue-50",
+    purple: "text-purple-600 bg-purple-50",
+    red: "text-red-600 bg-red-50",
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        
-        {/* Management Options */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
-          <ManagementCard
-            title="Daily Sales"
-            description="Record daily sales transactions and track your business performance."
-            icon={ShoppingCart}
-            to="/daily-sales"
-          />
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-2">
+        <p className={`text-3xl font-bold ${colorClasses[color as keyof typeof colorClasses].split(" ")[0]}`}>
+          {typeof value === "number" ? value.toLocaleString() : value}
+        </p>
+        {Icon && (
+          <div className={`p-2 rounded-xl ${colorClasses[color as keyof typeof colorClasses]}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+        )}
+      </div>
+      <p className="text-sm font-medium text-gray-600">{label}</p>
+    </div>
+  )
+}
+
+const SalesLocationCard = ({ location, color }: { location: Location; color: string }) => {
+  const colorClasses = {
+    green: "bg-green-100 text-green-600",
+    blue: "bg-blue-100 text-blue-600",
+    purple: "bg-purple-100 text-purple-600",
+  }
+
+  return (
+    <Link to={`/sales/${location}`} state={{ location }} className="block group">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-blue-200 transition-all duration-300 group-hover:-translate-y-1 p-8 text-center">
+        <div
+          className={`p-4 ${colorClasses[color as keyof typeof colorClasses]} rounded-2xl mx-auto mb-6 w-20 h-20 flex items-center justify-center group-hover:scale-110 transition-transform`}
+        >
+          <ShoppingCart className="h-8 w-8" />
         </div>
-        {/* Location Stats */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Inventory Overview</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <a href="/location/Adama">
+        <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+          {location} Sales
+        </h3>
+        <p className="text-gray-600">Manage sales and track performance</p>
+      </div>
+    </Link>
+  )
+}
+
+function HomePage() {
+  const { products } = useProducts()
+
+  const locationStats = {
+    Adama: {
+      count: products.filter((p) => p.location === "Adama").length,
+      totalStock: products.filter((p) => p.location === "Adama").reduce((sum, p) => sum + (p.balance || 0), 0),
+    },
+    "Addis Ababa": {
+      count: products.filter((p) => p.location === "Addis Ababa").length,
+      totalStock: products.filter((p) => p.location === "Addis Ababa").reduce((sum, p) => sum + (p.balance || 0), 0),
+    },
+    Chemicals: {
+      count: products.filter((p) => p.location === "Chemicals").length,
+      totalStock: products.filter((p) => p.location === "Chemicals").reduce((sum, p) => sum + (p.balance || 0), 0),
+    },
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="container mx-auto px-6 py-12">
+        <div className="text-center mb-16">
+          <div className="flex items-center justify-center mb-6">
+            <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl shadow-lg">
+              <Package className="h-12 w-12 text-white" />
+            </div>
+          </div>
+          <h1 className="text-5xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Inventory Management
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Streamline your business operations with comprehensive inventory tracking and sales management across all
+            locations.
+          </p>
+        </div>
+
+        <div className="mb-20">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Quick Actions</h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <ManagementCard
+              title="Daily Sales"
+              description="Record daily sales transactions and track your business performance with detailed analytics."
+              icon={BarChart3}
+              to="/daily-sales"
+            />
+            <ManagementCard
+              title="Sales History"
+              description="View comprehensive sales history and analyze trends across all your locations."
+              icon={TrendingUp}
+              to="/sales-history"
+            />
+          </div>
+        </div>
+
+        <div className="mb-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Inventory Overview</h2>
+            <p className="text-gray-600 text-lg">Monitor stock levels and manage products across all locations</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
+            <a href="/location/Adama" className="block group">
               <LocationCard
                 name="Adama"
-                productCount={locationStats['Adama'].count}
-                totalStock={locationStats['Adama'].totalStock}
+                productCount={locationStats["Adama"].count}
+                totalStock={locationStats["Adama"].totalStock}
                 onClick={() => {}}
               />
             </a>
-            <a href="/location/Addis Ababa">
+            <a href="/location/Addis Ababa" className="block group">
               <LocationCard
                 name="Addis Ababa"
-                productCount={locationStats['Addis Ababa'].count}
-                totalStock={locationStats['Addis Ababa'].totalStock}
+                productCount={locationStats["Addis Ababa"].count}
+                totalStock={locationStats["Addis Ababa"].totalStock}
                 onClick={() => {}}
               />
             </a>
-            <a href="/location/Chemicals">
+            <a href="/location/Chemicals" className="block group">
               <LocationCard
                 name="Chemicals"
-                productCount={locationStats['Chemicals'].count}
-                totalStock={locationStats['Chemicals'].totalStock}
+                productCount={locationStats["Chemicals"].count}
+                totalStock={locationStats["Chemicals"].totalStock}
                 onClick={() => {}}
               />
             </a>
           </div>
 
-          {/* Sales Management Section */}
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Sales Management</h2>
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <Link
-                to="/sales/Adama"
-                state={{ location: 'Adama' }}
-                className="block"
-              >
-                <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 p-6 text-center">
-                  <div className="p-3 bg-green-100 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
-                    <ShoppingCart className="h-8 w-8 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Adama Sales</h3>
-                  <p className="text-gray-600 text-sm">Manage sales and track performance</p>
-                </div>
-              </Link>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            <StatCard value={products.length} label="Total Products" color="gray" icon={Package} />
+            <StatCard
+              value={products.reduce((sum, p) => sum + (p.balance || 0), 0)}
+              label="Total Stock"
+              color="green"
+              icon={TrendingUp}
+            />
+            <StatCard
+              value={products.reduce((sum, p) => sum + (p.totalOut || 0), 0)}
+              label="Total Sold"
+              color="blue"
+              icon={ShoppingCart}
+            />
+            <StatCard
+              value={products.filter((p) => (p.balance || 0) === 0).length}
+              label="Out of Stock"
+              color="red"
+              icon={Package}
+            />
+          </div>
+        </div>
 
-              <Link
-                to="/sales/Addis Ababa"
-                state={{ location: 'Addis Ababa' }}
-                className="block"
-              >
-                <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 p-6 text-center">
-                  <div className="p-3 bg-blue-100 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
-                    <ShoppingCart className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Addis Ababa Sales</h3>
-                  <p className="text-gray-600 text-sm">Manage sales and track performance</p>
-                </div>
-              </Link>
-
-              <Link
-                to="/sales/Chemicals"
-                state={{ location: 'Chemicals' }}
-                className="block"
-              >
-                <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 p-6 text-center">
-                  <div className="p-3 bg-purple-100 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
-                    <ShoppingCart className="h-8 w-8 text-purple-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Chemicals Sales</h3>
-                  <p className="text-gray-600 text-sm">Manage sales and track performance</p>
-                </div>
-              </Link>
-            </div>
+        <div className="mb-12">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Sales Management</h2>
+            <p className="text-gray-600 text-lg">Track and manage sales performance by location</p>
           </div>
 
-          {/* Quick Stats */}
-          <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div className="bg-white p-4 rounded-lg shadow-md text-center">
-              <p className="text-2xl font-bold text-gray-800">{products.length}</p>
-              <p className="text-sm text-gray-600">Total Products</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-md text-center">
-              <p className="text-2xl font-bold text-green-600">
-                {products.reduce((sum, p) => sum + (p.balance || 0), 0).toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600">Total Stock</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-md text-center">
-              <p className="text-2xl font-bold text-blue-600">
-                {products.reduce((sum, p) => sum + (p.totalOut || 0), 0).toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600">Total Out</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-md text-center">
-              <p className="text-2xl font-bold text-purple-600">
-                {products.filter(p => (p.balance || 0) === 0).length}
-              </p>
-              <p className="text-sm text-gray-600">Out of Stock</p>
-            </div>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <SalesLocationCard location="Adama" color="green" />
+            <SalesLocationCard location="Addis Ababa" color="blue" />
+            <SalesLocationCard location="Chemicals" color="purple" />
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function LocationPage({ location }: { location: Location }) {
-  const { products, loading, error, addProduct, updateProduct, deleteProduct, recordSale } = useProducts(location);
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const selectedProductData = selectedProduct ? products.find(p => p._id === selectedProduct) : null;
+  const { products, loading, error, addProduct, updateProduct, deleteProduct, recordSale } = useProducts(location)
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const selectedProductData = selectedProduct ? products.find((p) => p._id === selectedProduct) : null
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <LoadingSpinner size="lg" message={`Loading ${location} inventory...`} />
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -207,7 +249,7 @@ function LocationPage({ location }: { location: Location }) {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -216,10 +258,7 @@ function LocationPage({ location }: { location: Location }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
-            <a
-              href="/"
-              className="p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all"
-            >
+            <a href="/" className="p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all">
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </a>
             <div>
@@ -242,9 +281,7 @@ function LocationPage({ location }: { location: Location }) {
             <div className="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto">
               <Seedling className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-800 mb-2">No Products Yet</h3>
-              <p className="text-gray-600 mb-4">
-                Start by adding your first product to this location.
-              </p>
+              <p className="text-gray-600 mb-4">Start by adding your first product to this location.</p>
               <button
                 onClick={() => setShowAddForm(true)}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -256,11 +293,7 @@ function LocationPage({ location }: { location: Location }) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => (
-              <ProductCard
-                key={product._id}
-                product={product}
-                onClick={() => setSelectedProduct(product._id)}
-              />
+              <ProductCard key={product._id} product={product} onClick={() => setSelectedProduct(product._id)} />
             ))}
           </div>
         )}
@@ -278,17 +311,13 @@ function LocationPage({ location }: { location: Location }) {
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <ProductForm
-                location={location}
-                onSubmit={addProduct}
-                onCancel={() => setShowAddForm(false)}
-              />
+              <ProductForm location={location} onSubmit={addProduct} onCancel={() => setShowAddForm(false)} />
             </div>
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }
 
 function App() {
@@ -305,7 +334,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
-  );
+  )
 }
 
-export default App;
+export default App
