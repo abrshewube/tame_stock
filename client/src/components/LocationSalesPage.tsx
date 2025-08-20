@@ -98,6 +98,7 @@ const LocationSalesPage = () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/products?location=${location}`);
+      
       setProducts(response.data.data || []);
     } catch (err) {
       console.error('Error fetching products:', err);
@@ -242,6 +243,7 @@ const LocationSalesPage = () => {
     return sales.filter(sale => sale.date === date).length;
   };
 
+  // console.log(sales[0].description)
   if (!location) {
     return <div>Location not found</div>;
   }
@@ -318,11 +320,10 @@ const LocationSalesPage = () => {
                       <button
                         key={date}
                         onClick={() => handleDateSelect(date)}
-                        className={`w-full p-3 rounded-lg border transition-colors text-left ${
-                          selectedDate === date
+                        className={`w-full p-3 rounded-lg border transition-colors text-left ${selectedDate === date
                             ? 'border-blue-500 bg-blue-50 text-blue-700'
                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         <div className="flex justify-between items-center">
                           <span className="font-medium">{formatDate(date)}</span>
@@ -344,9 +345,13 @@ const LocationSalesPage = () => {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    Sales for {formatDate(selectedDate)}
-                  </h2>
+                  <div className="flex flex-col">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      Sales for {formatDate(selectedDate)}
+                    </h2>
+                    { sales[0].description}
+                  </div>
+
                   <div className="text-sm text-gray-500">
                     {sales.length} sales • Total: ETB {sales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
                   </div>
@@ -600,11 +605,10 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
           <button
             type="submit"
             disabled={isSubmitting || !formData.productId || !formData.quantity || !formData.price}
-            className={`flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors ${
-              isSubmitting || !formData.productId || !formData.quantity || !formData.price
+            className={`flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors ${isSubmitting || !formData.productId || !formData.quantity || !formData.price
                 ? 'opacity-50 cursor-not-allowed'
                 : ''
-            }`}
+              }`}
           >
             {isSubmitting ? 'Processing...' : 'Record Sale'}
           </button>
@@ -711,9 +715,8 @@ const StockForm: React.FC<StockFormProps> = ({ products, onSubmit, onCancel, isS
           <button
             type="submit"
             disabled={isSubmitting || !formData.productId || !formData.quantity}
-            className={`flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors ${
-              isSubmitting || !formData.productId || !formData.quantity ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors ${isSubmitting || !formData.productId || !formData.quantity ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             {isSubmitting ? 'Processing...' : 'Add Stock'}
           </button>
@@ -861,11 +864,10 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
           <button
             type="submit"
             disabled={isSubmitting || !formData.productId || !formData.quantity || !formData.price}
-            className={`flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors ${
-              isSubmitting || !formData.productId || !formData.quantity || !formData.price
+            className={`flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors ${isSubmitting || !formData.productId || !formData.quantity || !formData.price
                 ? 'opacity-50 cursor-not-allowed'
                 : ''
-            }`}
+              }`}
           >
             {isSubmitting ? 'Processing...' : 'Update Sale'}
           </button>

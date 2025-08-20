@@ -34,21 +34,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
+        {/* <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-2">
             <Package className="h-4 w-4 text-gray-500" />
             <span className="text-gray-600">Initial Balance</span>
           </div>
           <span className="font-medium">{product.initialBalance.toLocaleString()}</span>
-        </div>
-
+        </div> */}
+{/* 
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-2">
             <TrendingUp className="h-4 w-4 text-green-500" />
             <span className="text-gray-600">Total In</span>
           </div>
           <span className="font-medium text-green-600">{totalIn.toLocaleString()}</span>
-        </div>
+        </div> */}
 
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-2">

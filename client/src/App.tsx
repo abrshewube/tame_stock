@@ -159,7 +159,7 @@ function HomePage() {
             </a>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+          {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
             <StatCard value={products.length} label="Total Products" color="gray" icon={Package} />
             <StatCard
               value={products.reduce((sum, p) => sum + (p.balance || 0), 0)}
@@ -179,7 +179,7 @@ function HomePage() {
               color="red"
               icon={Package}
             />
-          </div>
+          </div> */}
         </div>
 
         <div className="mb-12">
