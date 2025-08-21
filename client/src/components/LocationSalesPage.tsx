@@ -349,7 +349,7 @@ const LocationSalesPage = () => {
                     <h2 className="text-lg font-semibold text-gray-800">
                       Sales for {formatDate(selectedDate)}
                     </h2>
-                    { sales[0].description}
+                    {/* { sales[0].description} */}
                   </div>
 
                   <div className="text-sm text-gray-500">
