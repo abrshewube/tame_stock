@@ -6,6 +6,76 @@ import Sale from '../models/Sale.js';
 
 const router = express.Router();
 
+// Bulk record sales for a single date
+router.post('/bulk', async (req, res) => {
+  try {
+    const { date, location, description, sales } = req.body;
+
+    if (!date || !location || !Array.isArray(sales) || sales.length === 0) {
+      return res.status(400).json({ message: 'Missing required fields (date, location, sales[])' });
+    }
+
+    // Basic validation for each sale item
+    for (const item of sales) {
+      const { productId, productName, quantity, price } = item || {};
+      if (!productId || !productName || !quantity || price === undefined) {
+        return res.status(400).json({ message: 'Each sale requires productId, productName, quantity, price' });
+      }
+      if (quantity <= 0 || price < 0) {
+        return res.status(400).json({ message: 'Invalid quantity or price in one of the sales' });
+      }
+    }
+
+    const created = [];
+
+    // Process sequentially to maintain stock integrity
+    for (const item of sales) {
+      const { productId, productName, quantity, price } = item;
+
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: `Product not found: ${productId}` });
+      }
+
+      if (product.balance < quantity) {
+        return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+      }
+
+      const transaction = new Transaction({
+        productId,
+        type: 'out',
+        quantity,
+        date: new Date(date),
+        description: `Sale of ${quantity} units at ${price} ETB each`
+      });
+      await transaction.save();
+
+      product.balance -= quantity;
+      await product.save();
+
+      const sale = new Sale({
+        productId,
+        productName,
+        date: new Date(date),
+        location,
+        quantity,
+        price,
+        total: quantity * price,
+        transactionId: transaction._id,
+        description
+      });
+      await sale.save();
+
+      created.push({ ...sale.toObject(), transactionId: transaction._id });
+    }
+
+    res.status(201).json({ message: 'Sales batch recorded successfully', sales: created });
+  } catch (error) {
+    console.error('Error recording sales batch:', error);
+    res.status(500).json({ message: 'Error recording sales batch', error: error.message });
+  }
+});
+
 // Record a new sale
 router.post('/', async (req, res) => {
   try {

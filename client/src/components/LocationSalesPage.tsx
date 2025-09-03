@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar, Package, DollarSign, MapPin, Edit2, Trash2 } from 'lucide-react';
 import axios from 'axios';
+import { recordSalesBatch } from '../services/saleService';
 
 interface Product {
   _id: string;
@@ -76,6 +77,7 @@ const LocationSalesPage = () => {
   const location = useLocation().state?.location;
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showSaleForm, setShowSaleForm] = useState(false);
+  const [showBatchForm, setShowBatchForm] = useState(false);
   const [showStockForm, setShowStockForm] = useState(false);
   const [showEditSaleForm, setShowEditSaleForm] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -283,6 +285,13 @@ const LocationSalesPage = () => {
                 Add Sale
               </button>
               <button
+                onClick={() => setShowBatchForm(true)}
+                className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Batch Sales
+              </button>
+              <button
                 onClick={() => setShowStockForm(true)}
                 className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
               >
@@ -428,6 +437,25 @@ const LocationSalesPage = () => {
                   onSubmit={handleAddSale}
                   onCancel={() => setShowSaleForm(false)}
                   isSubmitting={isSubmitting}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Batch Sales Form Modal */}
+          {showBatchForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <BatchSalesForm
+                  products={products}
+                  defaultDate={selectedDate}
+                  locationName={location}
+                  onSuccess={() => {
+                    setShowBatchForm(false);
+                    fetchProducts();
+                    fetchSales();
+                  }}
+                  onCancel={() => setShowBatchForm(false)}
                 />
               </div>
             </div>
@@ -878,3 +906,144 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
 };
 
 export default LocationSalesPage;
+
+interface BatchRow {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: string;
+  price: string;
+}
+
+interface BatchSalesFormProps {
+  products: Product[];
+  defaultDate: string;
+  locationName: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, locationName, onSuccess, onCancel }) => {
+  const [rows, setRows] = useState<BatchRow[]>([]);
+  const [batchDate, setBatchDate] = useState<string>(defaultDate);
+  const [commonDescription, setCommonDescription] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string>('');
+
+  const addRow = () => {
+    setRows(prev => ([...prev, { id: Math.random().toString(36).slice(2), productId: '', productName: '', quantity: '', price: '' }]));
+  };
+
+  const removeRow = (id: string) => {
+    setRows(prev => prev.filter(r => r.id !== id));
+  };
+
+  const updateRow = (id: string, updates: Partial<BatchRow>) => {
+    setRows(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+  };
+
+  const handleProductChange = (id: string, productId: string) => {
+    const product = products.find(p => p._id === productId);
+    updateRow(id, { productId, productName: product?.name || '', price: product ? String(product.price) : '' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!rows.length) {
+      setError('Please add at least one sale.');
+      return;
+    }
+    // Validate rows
+    for (const r of rows) {
+      if (!r.productId || !r.quantity || !r.price) {
+        setError('Each row must have product, quantity, and price.');
+        return;
+      }
+    }
+    try {
+      setSubmitting(true);
+      await recordSalesBatch({
+        date: batchDate,
+        location: locationName,
+        description: commonDescription,
+        sales: rows.map(r => ({
+          productId: r.productId,
+          productName: r.productName,
+          quantity: parseInt(r.quantity),
+          price: parseFloat(r.price)
+        }))
+      });
+      onSuccess();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to record sales batch.';
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Add Batch Sales</h3>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">✕</button>
+      </div>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value={batchDate} onChange={(e) => setBatchDate(e.target.value)} required />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Common Description (e.g., Ethiopian Date)</label>
+            <input type="text" className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value={commonDescription} onChange={(e) => setCommonDescription(e.target.value)} placeholder="Enter Ethiopian date or notes shared for all" />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {rows.map((row) => {
+            const product = products.find(p => p._id === row.productId);
+            return (
+              <div key={row.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border border-gray-200 rounded-lg p-3">
+                <div className="md:col-span-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                  <select value={row.productId} onChange={(e) => handleProductChange(row.id, e.target.value)} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
+                    <option value="">Select a product</option>
+                    {products.map(p => (
+                      <option key={p._id} value={p._id}>{p.name} (Stock: {p.balance})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                  <input type="number" min="1" max={product?.balance || undefined} value={row.quantity} onChange={(e) => updateRow(row.id, { quantity: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                </div>
+                <div className="md:col-span-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (ETB)</label>
+                  <input type="number" min="0.01" step="0.01" value={row.price} onChange={(e) => updateRow(row.id, { price: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                </div>
+                <div className="md:col-span-2">
+                  <div className="text-sm text-gray-600 mb-1">Total</div>
+                  <div className="font-medium">{row.quantity && row.price ? `ETB ${(parseFloat(row.quantity) * parseFloat(row.price)).toFixed(2)}` : '—'}</div>
+                </div>
+                <div className="md:col-span-1 flex md:justify-end">
+                  <button type="button" onClick={() => removeRow(row.id)} className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">Delete</button>
+                </div>
+              </div>
+            );
+          })}
+          <button type="button" onClick={addRow} className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200">+ Add Row</button>
+        </div>
+
+        <div className="flex space-x-3 pt-2">
+          <button type="button" onClick={onCancel} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
+          <button type="submit" disabled={submitting || rows.length === 0} className={`flex-1 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors ${submitting || rows.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>{submitting ? 'Processing...' : 'Submit All Sales'}</button>
+        </div>
+      </form>
+    </div>
+  );
+};

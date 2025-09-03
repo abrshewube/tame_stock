@@ -12,6 +12,23 @@ export interface SaleData {
   description?: string;
 }
 
+export interface SalesBatchItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+}
+
+export const recordSalesBatch = async (params: { date: string; location: string; description?: string; sales: SalesBatchItem[] }) => {
+  try {
+    const response = await axios.post(`${API_URL}/bulk`, params);
+    return response.data;
+  } catch (error) {
+    console.error('Error recording sales batch:', error);
+    throw error;
+  }
+};
+
 export const recordSale = async (saleData: SaleData) => {
   try {
     const response = await axios.post(API_URL, saleData);
