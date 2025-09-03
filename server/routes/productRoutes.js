@@ -498,6 +498,39 @@ router.delete('/:productId/transactions/:transactionId', async (req, res) => {
   }
 });
 
+// PUT /api/products/:productId/transactions/:transactionId - Update transaction
+router.put('/:productId/transactions/:transactionId', validateTransaction, async (req, res) => {
+  try {
+    const { productId, transactionId } = req.params;
+
+    // Ensure transaction exists and belongs to product
+    const transaction = await Transaction.findOne({ _id: transactionId, productId });
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    // Only allow updating certain fields
+    const updates = {
+      quantity: req.body.quantity,
+      date: new Date(req.body.date),
+      description: req.body.description,
+    };
+
+    // Keep the original type unless explicitly provided and valid
+    if (req.body.type === 'in' || req.body.type === 'out') {
+      updates.type = req.body.type;
+    }
+
+    Object.assign(transaction, updates);
+    await transaction.save();
+
+    res.json({ success: true, data: transaction, message: 'Transaction updated successfully' });
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    res.status(400).json({ success: false, message: error.message || 'Error updating transaction' });
+  }
+});
+
 // POST /api/products/:id/clear-history - Clear all transaction history
 router.post('/:id/clear-history', async (req, res) => {
   try {

@@ -90,6 +90,8 @@ const LocationSalesPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showEditStockForm, setShowEditStockForm] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
 
   useEffect(() => {
     if (location) {
@@ -209,6 +211,54 @@ const LocationSalesPage = () => {
       console.error('Error deleting sale:', err);
       const errorMessage = err.response?.data?.message || 'Failed to delete sale. Please try again.';
       setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditStock = (txn: any) => {
+    setSelectedTransaction(txn);
+    setShowEditStockForm(true);
+  };
+
+  const handleDeleteStock = async (txn: any) => {
+    if (!window.confirm('Delete this stock entry?')) return;
+    try {
+      setIsSubmitting(true);
+      await axios.delete(`${API_URL}/products/${txn.productId}/transactions/${txn._id}`);
+      setSuccess('Stock entry deleted successfully!');
+      fetchProducts();
+      fetchStockIn();
+    } catch (err: any) {
+      console.error('Error deleting stock:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to delete stock.';
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateStock = async (payload: { productId: string; transactionId: string; quantity: number; date: string; description?: string }) => {
+    try {
+      setIsSubmitting(true);
+      setError('');
+      await axios.put(`${API_URL}/products/${payload.productId}/transactions/${payload.transactionId}`, {
+        type: 'in',
+        quantity: payload.quantity,
+        date: payload.date,
+        description: payload.description,
+      });
+      setSuccess('Stock entry updated successfully!');
+      setShowEditStockForm(false);
+      setSelectedTransaction(null);
+      fetchProducts();
+      fetchStockIn();
+      return true;
+    } catch (err: any) {
+      console.error('Error updating stock:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to update stock.';
+      setError(errorMessage);
+      return false;
     } finally {
       setIsSubmitting(false);
     }
@@ -472,6 +522,20 @@ const LocationSalesPage = () => {
                               <div className="text-xs text-gray-500">
                                 {new Date(txn.createdAt).toLocaleTimeString()}
                               </div>
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={() => handleEditStock(txn)}
+                                  className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                                >
+                                  <Edit2 className="h-4 w-4 mr-1" /> Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteStock(txn)}
+                                  className="text-red-600 hover:text-red-800 text-sm flex items-center"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -560,6 +624,20 @@ const LocationSalesPage = () => {
                   products={products}
                   onSubmit={handleUpdateSale}
                   onCancel={() => setShowEditSaleForm(false)}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Edit Stock Form Modal */}
+          {showEditStockForm && selectedTransaction && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <EditStockForm
+                  transaction={selectedTransaction}
+                  onSubmit={handleUpdateStock}
+                  onCancel={() => setShowEditStockForm(false)}
                   isSubmitting={isSubmitting}
                 />
               </div>
@@ -1000,6 +1078,86 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
           >
             {isSubmitting ? 'Processing...' : 'Update Sale'}
           </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// Edit Stock Form Component
+interface EditStockFormProps {
+  transaction: any;
+  onSubmit: (payload: { productId: string; transactionId: string; quantity: number; date: string; description?: string }) => Promise<boolean>;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}
+
+const EditStockForm: React.FC<EditStockFormProps> = ({ transaction, onSubmit, onCancel, isSubmitting }) => {
+  const normalizeDateString = (d?: string) => {
+    if (!d) return new Date().toISOString().split('T')[0];
+    return d.includes('T') ? d.split('T')[0] : d;
+  };
+  const [quantity, setQuantity] = useState<string>(String(transaction.quantity || ''));
+  const [date, setDate] = useState<string>(normalizeDateString(transaction.date));
+  const [description, setDescription] = useState<string>(transaction.description || '');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quantity) return;
+    await onSubmit({
+      productId: String(transaction.productId),
+      transactionId: String(transaction._id),
+      quantity: parseInt(quantity),
+      date,
+      description,
+    });
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Edit Stock Entry</h3>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">✕</button>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <div className="text-sm text-gray-600">Product</div>
+          <div className="font-medium text-gray-800">{transaction.productName || '—'}</div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+          <input
+            type="number"
+            min="1"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            rows={3}
+            placeholder="Add any additional details..."
+          />
+        </div>
+        <div className="flex space-x-3 pt-2">
+          <button type="button" onClick={onCancel} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
+          <button type="submit" disabled={isSubmitting || !quantity} className={`flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ${isSubmitting || !quantity ? 'opacity-50 cursor-not-allowed' : ''}`}>{isSubmitting ? 'Processing...' : 'Update Stock'}</button>
         </div>
       </form>
     </div>
