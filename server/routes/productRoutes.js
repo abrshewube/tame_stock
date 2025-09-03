@@ -86,7 +86,7 @@ const validateProduct = [
 // Validation middleware for transactions
 const validateTransaction = [
   body('type').isIn(['in', 'out']).withMessage('Transaction type must be "in" or "out"'),
-  body('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
+  body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
   body('date').isISO8601().withMessage('Valid date is required')
 ];
 

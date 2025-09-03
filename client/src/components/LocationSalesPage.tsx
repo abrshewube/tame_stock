@@ -685,7 +685,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
     }
     const success = await onSubmit({
       ...formData,
-      quantity: parseInt(formData.quantity),
+      quantity: parseFloat(formData.quantity),
       price: parseFloat(formData.price)
     }, saleDate);
     if (success) {
@@ -759,7 +759,8 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
           <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
           <input
             type="number"
-            min="1"
+            min="0.01"
+            step="0.01"
             max={selectedProduct?.balance || 1}
             value={formData.quantity}
             onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
@@ -841,7 +842,7 @@ const StockForm: React.FC<StockFormProps> = ({ products, onSubmit, onCancel, isS
     }
     const success = await onSubmit({
       productId: formData.productId,
-      quantity: parseInt(formData.quantity),
+      quantity: parseFloat(formData.quantity),
       date: formData.date,
       description: formData.description,
     });
@@ -894,7 +895,8 @@ const StockForm: React.FC<StockFormProps> = ({ products, onSubmit, onCancel, isS
           <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
           <input
             type="number"
-            min="1"
+            min="0.01"
+            step="0.01"
             value={formData.quantity}
             onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -952,7 +954,7 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
     }
     const success = await onSubmit({
       ...formData,
-      quantity: parseInt(formData.quantity),
+      quantity: parseFloat(formData.quantity),
       price: parseFloat(formData.price)
     }, saleDate);
     if (success) {
@@ -1026,7 +1028,8 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
           <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
           <input
             type="number"
-            min="1"
+            min="0.01"
+            step="0.01"
             max={selectedProduct?.balance || 1}
             value={formData.quantity}
             onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
@@ -1107,7 +1110,7 @@ const EditStockForm: React.FC<EditStockFormProps> = ({ transaction, onSubmit, on
     await onSubmit({
       productId: String(transaction.productId),
       transactionId: String(transaction._id),
-      quantity: parseInt(quantity),
+      quantity: parseFloat(quantity),
       date,
       description,
     });
@@ -1138,7 +1141,8 @@ const EditStockForm: React.FC<EditStockFormProps> = ({ transaction, onSubmit, on
           <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
           <input
             type="number"
-            min="1"
+            min="0.01"
+            step="0.01"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1229,7 +1233,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
         sales: rows.map(r => ({
           productId: r.productId,
           productName: r.productName,
-          quantity: parseInt(r.quantity),
+          quantity: parseFloat(r.quantity),
           price: parseFloat(r.price)
         }))
       });
@@ -1279,7 +1283,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                  <input type="number" min="1" max={product?.balance || undefined} value={row.quantity} onChange={(e) => updateRow(row.id, { quantity: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="number" min="0.01" step="0.01" max={product?.balance || undefined} value={row.quantity} onChange={(e) => updateRow(row.id, { quantity: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
                 </div>
                 <div className="md:col-span-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Price (ETB)</label>
@@ -1345,7 +1349,7 @@ const BatchStockForm: React.FC<BatchStockFormProps> = ({ products, defaultDate, 
         date: batchDate,
         location: locationName,
         description: commonDescription,
-        items: rows.map(r => ({ productId: r.productId, quantity: parseInt(r.quantity) }))
+        items: rows.map(r => ({ productId: r.productId, quantity: parseFloat(r.quantity) }))
       });
       onSuccess();
     } catch (err: any) {
