@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Package, DollarSign, MapPin, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { recordSalesBatch } from '../services/saleService';
 
@@ -60,6 +60,7 @@ interface StockFormProps {
   onSubmit: (data: { productId: string; quantity: number; date: string; description?: string }) => Promise<boolean>;
   onCancel: () => void;
   isSubmitting: boolean;
+  defaultDate?: string;
 }
 
 interface EditSaleFormProps {
@@ -79,12 +80,13 @@ const LocationSalesPage = () => {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showBatchForm, setShowBatchForm] = useState(false);
   const [showStockForm, setShowStockForm] = useState(false);
+  const [showBatchStockForm, setShowBatchStockForm] = useState(false);
   const [showEditSaleForm, setShowEditSaleForm] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [stockIn, setStockIn] = useState<any[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -93,20 +95,18 @@ const LocationSalesPage = () => {
     if (location) {
       fetchProducts();
       fetchSales();
+      fetchStockIn();
     }
   }, [location, selectedDate]);
 
   const fetchProducts = async () => {
     try {
-      setLoading(true);
       const response = await axios.get(`${API_URL}/products?location=${location}`);
       
       setProducts(response.data.data || []);
     } catch (err) {
       console.error('Error fetching products:', err);
       setError('Failed to load products. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -116,12 +116,24 @@ const LocationSalesPage = () => {
       const salesData = response.data.docs || response.data.data || [];
       setSales(salesData);
       const allSalesResponse = await axios.get(`${API_URL}/sales?location=${location}`);
-      const allSales = allSalesResponse.data.docs || allSalesResponse.data.data || [];
-      const dates = [...new Set(allSales.map((sale: Sale) => sale.date))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+      const allSales = (allSalesResponse.data.docs || allSalesResponse.data.data || []) as Sale[];
+      const dates: string[] = Array.from(new Set(allSales.map((sale: Sale) => sale.date)));
+      dates.sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime());
       setAvailableDates(dates);
     } catch (err) {
       console.error('Error fetching sales:', err);
       setError('Failed to load sales data. Please try again.');
+    }
+  };
+
+  const fetchStockIn = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/products/transactions`, {
+        params: { location, date: selectedDate, type: 'in' }
+      });
+      setStockIn(response.data.data || []);
+    } catch (err) {
+      console.error('Error fetching stock-in:', err);
     }
   };
 
@@ -298,6 +310,13 @@ const LocationSalesPage = () => {
                 <Plus className="h-5 w-5 mr-2" />
                 Add Stock
               </button>
+              <button
+                onClick={() => setShowBatchStockForm(true)}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Batch Stock
+              </button>
             </div>
           </div>
 
@@ -350,80 +369,116 @@ const LocationSalesPage = () => {
               </div>
             </div>
 
-            {/* Sales for Selected Date */}
+            {/* Sales and Stock for Selected Date */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex flex-col">
-                    <h2 className="text-lg font-semibold text-gray-800">
-                      Sales for {formatDate(selectedDate)}
-                    </h2>
-                    {/* { sales[0].description} */}
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex flex-col">
+                      <h2 className="text-lg font-semibold text-gray-800">
+                        Sales for {formatDate(selectedDate)}
+                      </h2>
+                    </div>
 
-                  <div className="text-sm text-gray-500">
-                    {sales.length} sales • Total: ETB {sales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
+                    <div className="text-sm text-gray-500">
+                      {sales.length} sales • Total: ETB {sales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
+                    </div>
                   </div>
-                </div>
-                {sales.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>No sales recorded for this date</p>
-                    <button
-                      onClick={() => setShowSaleForm(true)}
-                      className="mt-2 text-blue-600 hover:text-blue-800"
-                    >
-                      Add your first sale
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {sales.map((sale) => (
-                      <div key={sale._id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-800">{sale.productName}</h3>
-                            {sale.description && (
-                              <p className="text-sm text-gray-600 mt-1">{sale.description}</p>
-                            )}
-                            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                              <span className="flex items-center">
-                                <Package className="h-4 w-4 mr-1" />
-                                Qty: {sale.quantity}
-                              </span>
-                              <span className="flex items-center">
-                                <DollarSign className="h-4 w-4 mr-1" />
-                                Price: ETB {sale.price.toFixed(2)}
-                              </span>
+                  {sales.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>No sales recorded for this date</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {sales.map((sale) => (
+                        <div key={sale._id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-800">{sale.productName}</h3>
+                              {sale.description && (
+                                <p className="text-sm text-gray-600 mt-1">{sale.description}</p>
+                              )}
+                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                <span className="flex items-center">
+                                  <Package className="h-4 w-4 mr-1" />
+                                  Qty: {sale.quantity}
+                                </span>
+                                <span className="flex items-center">
+                                  <DollarSign className="h-4 w-4 mr-1" />
+                                  Price: ETB {sale.price.toFixed(2)}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-semibold text-gray-800">
-                              ETB {sale.total.toFixed(2)}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {new Date(sale.createdAt).toLocaleTimeString()}
-                            </div>
-                            <div className="flex space-x-2 mt-2">
-                              <button
-                                onClick={() => handleEditSale(sale)}
-                                className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                              >
-                                <Edit2 className="h-4 w-4 mr-1" /> Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteSale(sale._id)}
-                                className="text-red-600 hover:text-red-800 text-sm flex items-center"
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" /> Delete
-                              </button>
+                            <div className="text-right">
+                              <div className="text-lg font-semibold text-gray-800">
+                                ETB {sale.total.toFixed(2)}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(sale.createdAt).toLocaleTimeString()}
+                              </div>
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={() => handleEditSale(sale)}
+                                  className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                                >
+                                  <Edit2 className="h-4 w-4 mr-1" /> Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteSale(sale._id)}
+                                  className="text-red-600 hover:text-red-800 text-sm flex items-center"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex flex-col">
+                      <h2 className="text-lg font-semibold text-gray-800">
+                        Stock In for {formatDate(selectedDate)}
+                      </h2>
+                    </div>
                   </div>
-                )}
+                  {stockIn.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>No stock in for this date</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {stockIn.map((txn) => (
+                        <div key={txn._id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-800">{txn.productName}</h3>
+                              {txn.description && (
+                                <p className="text-sm text-gray-600 mt-1">{txn.description}</p>
+                              )}
+                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                <span className="flex items-center">
+                                  <Package className="h-4 w-4 mr-1" />
+                                  Qty: {txn.quantity}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-gray-500">
+                                {new Date(txn.createdAt).toLocaleTimeString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -437,6 +492,7 @@ const LocationSalesPage = () => {
                   onSubmit={handleAddSale}
                   onCancel={() => setShowSaleForm(false)}
                   isSubmitting={isSubmitting}
+                  defaultDate={selectedDate}
                 />
               </div>
             </div>
@@ -470,6 +526,26 @@ const LocationSalesPage = () => {
                   onSubmit={handleAddStock}
                   onCancel={() => setShowStockForm(false)}
                   isSubmitting={isSubmitting}
+                  defaultDate={selectedDate}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Batch Stock Form Modal */}
+          {showBatchStockForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <BatchStockForm
+                  products={products}
+                  defaultDate={selectedDate}
+                  locationName={location}
+                  onSuccess={() => {
+                    setShowBatchStockForm(false);
+                    fetchProducts();
+                    fetchStockIn();
+                  }}
+                  onCancel={() => setShowBatchStockForm(false)}
                 />
               </div>
             </div>
@@ -496,7 +572,20 @@ const LocationSalesPage = () => {
 };
 
 // Sale Form Component
-const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSubmitting }) => {
+interface SaleFormProps {
+  products: Product[];
+  onSubmit: (data: SaleFormData, saleDate: string) => Promise<boolean>;
+  onCancel: () => void;
+  isSubmitting: boolean;
+  defaultDate?: string;
+}
+
+const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSubmitting, defaultDate }) => {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const normalizeDateString = (d?: string) => {
+    if (!d) return todayStr;
+    return d.includes('T') ? d.split('T')[0] : d;
+  };
   const [formData, setFormData] = useState<SaleFormState>({
     productId: '',
     productName: '',
@@ -504,7 +593,11 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
     price: '',
     description: ''
   });
-  const [saleDate, setSaleDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = useState<string>(normalizeDateString(defaultDate));
+
+  useEffect(() => {
+    setSaleDate(normalizeDateString(defaultDate));
+  }, [defaultDate]);
   const selectedProduct = products.find(p => p._id === formData.productId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -647,13 +740,21 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
 };
 
 // Stock Form Component
-const StockForm: React.FC<StockFormProps> = ({ products, onSubmit, onCancel, isSubmitting }) => {
+const StockForm: React.FC<StockFormProps> = ({ products, onSubmit, onCancel, isSubmitting, defaultDate }) => {
+  const normalizeDateString = (d?: string) => {
+    if (!d) return new Date().toISOString().split('T')[0];
+    return d.includes('T') ? d.split('T')[0] : d;
+  };
   const [formData, setFormData] = useState<StockFormState>({
     productId: '',
     quantity: '',
-    date: new Date().toISOString().split('T')[0],
+    date: normalizeDateString(defaultDate),
     description: '',
   });
+
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, date: normalizeDateString(defaultDate) }));
+  }, [defaultDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -925,7 +1026,7 @@ interface BatchSalesFormProps {
 
 const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, locationName, onSuccess, onCancel }) => {
   const [rows, setRows] = useState<BatchRow[]>([]);
-  const [batchDate, setBatchDate] = useState<string>(defaultDate);
+  const [batchDate, setBatchDate] = useState<string>((defaultDate && defaultDate.includes('T')) ? defaultDate.split('T')[0] : defaultDate);
   const [commonDescription, setCommonDescription] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
@@ -1042,6 +1143,107 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
         <div className="flex space-x-3 pt-2">
           <button type="button" onClick={onCancel} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
           <button type="submit" disabled={submitting || rows.length === 0} className={`flex-1 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors ${submitting || rows.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>{submitting ? 'Processing...' : 'Submit All Sales'}</button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+interface BatchStockRow {
+  id: string;
+  productId: string;
+  quantity: string;
+}
+
+interface BatchStockFormProps {
+  products: Product[];
+  defaultDate: string;
+  locationName: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+const BatchStockForm: React.FC<BatchStockFormProps> = ({ products, defaultDate, locationName, onSuccess, onCancel }) => {
+  const [rows, setRows] = useState<BatchStockRow[]>([]);
+  const [batchDate, setBatchDate] = useState<string>((defaultDate && defaultDate.includes('T')) ? defaultDate.split('T')[0] : defaultDate);
+  const [commonDescription, setCommonDescription] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string>('');
+
+  const addRow = () => setRows(prev => ([...prev, { id: Math.random().toString(36).slice(2), productId: '', quantity: '' }]));
+  const removeRow = (id: string) => setRows(prev => prev.filter(r => r.id !== id));
+  const updateRow = (id: string, updates: Partial<BatchStockRow>) => setRows(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!rows.length) { setError('Please add at least one stock item.'); return; }
+    for (const r of rows) {
+      if (!r.productId || !r.quantity) { setError('Each row must have product and quantity.'); return; }
+    }
+    try {
+      setSubmitting(true);
+      await axios.post(`${API_URL}/products/transactions/bulk`, {
+        date: batchDate,
+        location: locationName,
+        description: commonDescription,
+        items: rows.map(r => ({ productId: r.productId, quantity: parseInt(r.quantity) }))
+      });
+      onSuccess();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to record stock batch.';
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Add Batch Stock</h3>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">✕</button>
+      </div>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value={batchDate} onChange={(e) => setBatchDate(e.target.value)} required />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Common Description</label>
+            <input type="text" className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value={commonDescription} onChange={(e) => setCommonDescription(e.target.value)} placeholder="Note for all stock entries" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          {rows.map(row => (
+            <div key={row.id} className="grid grid-cols-1 md:grid-cols-8 gap-3 items-end border border-gray-200 rounded-lg p-3">
+              <div className="md:col-span-5">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                <select value={row.productId} onChange={(e) => updateRow(row.id, { productId: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
+                  <option value="">Select a product</option>
+                  {products.map(p => (
+                    <option key={p._id} value={p._id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                <input type="number" min="1" value={row.quantity} onChange={(e) => updateRow(row.id, { quantity: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+              </div>
+              <div className="md:col-span-1 flex md:justify-end">
+                <button type="button" onClick={() => removeRow(row.id)} className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">Delete</button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addRow} className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200">+ Add Row</button>
+        </div>
+        <div className="flex space-x-3 pt-2">
+          <button type="button" onClick={onCancel} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
+          <button type="submit" disabled={submitting || rows.length === 0} className={`flex-1 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors ${submitting || rows.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>{submitting ? 'Processing...' : 'Submit All Stock'}</button>
         </div>
       </form>
     </div>

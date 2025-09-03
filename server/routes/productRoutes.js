@@ -4,6 +4,77 @@ import Product from '../models/Product.js';
 import Transaction from '../models/Transaction.js';
 
 const router = express.Router();
+// GET /api/products/transactions - Transactions by date/location/type
+router.get('/transactions', async (req, res) => {
+  try {
+    const { location, date, type } = req.query;
+    if (!location || !date) {
+      return res.status(400).json({ success: false, message: 'location and date are required' });
+    }
+
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const products = await Product.find({ location }).select('_id name');
+    const productIdToName = new Map(products.map(p => [p._id.toString(), p.name]));
+    const productIds = products.map(p => p._id);
+
+    const filter = { productId: { $in: productIds }, date: { $gte: startDate, $lte: endDate } };
+    if (type === 'in' || type === 'out') {
+      filter.type = type;
+    }
+
+    const transactions = await Transaction.find(filter).sort({ createdAt: -1 });
+    const data = transactions.map(t => ({
+      ...t.toObject(),
+      productName: productIdToName.get(t.productId.toString()) || ''
+    }));
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching transactions by date/location:', error);
+    res.status(500).json({ success: false, message: 'Error fetching transactions' });
+  }
+});
+
+// POST /api/products/transactions/bulk - Bulk stock-in for a single date
+router.post('/transactions/bulk', async (req, res) => {
+  try {
+    const { date, location, description, items } = req.body;
+    if (!date || !location || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Missing required fields (date, location, items[])' });
+    }
+    for (const it of items) {
+      if (!it.productId || !it.quantity || it.quantity <= 0) {
+        return res.status(400).json({ success: false, message: 'Each item requires productId and positive quantity' });
+      }
+    }
+    const products = await Product.find({ location }).select('_id');
+    const allowedIds = new Set(products.map(p => p._id.toString()));
+
+    const created = [];
+    for (const it of items) {
+      if (!allowedIds.has(it.productId)) {
+        return res.status(400).json({ success: false, message: 'Product does not belong to specified location' });
+      }
+      const txn = new Transaction({
+        productId: it.productId,
+        type: 'in',
+        quantity: it.quantity,
+        date: new Date(date),
+        description
+      });
+      await txn.save();
+      created.push(txn);
+    }
+    res.status(201).json({ success: true, message: 'Stock batch recorded successfully', data: created });
+  } catch (error) {
+    console.error('Error recording stock batch:', error);
+    res.status(500).json({ success: false, message: 'Error recording stock batch' });
+  }
+});
 
 // Validation middleware for products
 const validateProduct = [
