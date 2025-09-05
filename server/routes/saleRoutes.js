@@ -18,11 +18,11 @@ router.post('/bulk', async (req, res) => {
     // Basic validation for each sale item
     for (const item of sales) {
       const { productId, productName, quantity, price } = item || {};
-      if (!productId || !productName || !quantity || price === undefined) {
-        return res.status(400).json({ message: 'Each sale requires productId, productName, quantity, price' });
+      if (!productId || !productName || !quantity ) {
+        return res.status(400).json({ message: 'Each sale requires productId, productName, quantity' });
       }
-      if (quantity <= 0 || price < 0) {
-        return res.status(400).json({ message: 'Invalid quantity or price in one of the sales' });
+      if (quantity <= 0 ) {
+        return res.status(400).json({ message: 'Invalid quantity  in one of the sales' });
       }
     }
 
@@ -82,11 +82,11 @@ router.post('/', async (req, res) => {
     const { productId, productName, date, location, quantity, price,description } = req.body;
     
     // Validate input
-    if (!productId || !productName || !date || !location || !quantity || price === undefined) {
+    if (!productId || !productName || !date || !location || !quantity ) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    if (quantity <= 0 || price < 0) {
+    if (quantity <= 0 ) {
       return res.status(400).json({ message: 'Invalid quantity or price' });
     }
 
