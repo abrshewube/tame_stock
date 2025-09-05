@@ -778,8 +778,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
           <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (ETB)</label>
           <input
             type="number"
-            min="0.01"
-            step="0.01"
+            
             value={formData.price}
             onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1047,8 +1046,7 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
           <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (ETB)</label>
           <input
             type="number"
-            min="0.01"
-            step="0.01"
+           
             value={formData.price}
             onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1219,7 +1217,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
     }
     // Validate rows
     for (const r of rows) {
-      if (!r.productId || !r.quantity || !r.price) {
+      if (!r.productId || !r.quantity) {
         setError('Each row must have product, quantity, and price.');
         return;
       }
@@ -1287,7 +1285,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
                 </div>
                 <div className="md:col-span-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Price (ETB)</label>
-                  <input type="number" min="0.01" step="0.01" value={row.price} onChange={(e) => updateRow(row.id, { price: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="number"  value={row.price} onChange={(e) => updateRow(row.id, { price: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
                 </div>
                 <div className="md:col-span-2">
                   <div className="text-sm text-gray-600 mb-1">Total</div>

@@ -69,7 +69,7 @@ const DailySalesPage = () => {
     setError('');
     setSuccess('');
 
-    if (!selectedProduct || !quantity || !price) {
+    if (!selectedProduct || !quantity ) {
       setError('Please fill in all fields');
       return;
     }
@@ -82,10 +82,7 @@ const DailySalesPage = () => {
       return;
     }
 
-    if (isNaN(priceNum) || priceNum < 0) {
-      setError('Please enter a valid price');
-      return;
-    }
+   
 
     const saleData = {
       date,
