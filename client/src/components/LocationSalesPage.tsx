@@ -104,7 +104,7 @@ const LocationSalesPage = () => {
   const fetchProducts = async () => {
     try {
       const response = await axios.get(`${API_URL}/products?location=${location}`);
-      
+
       setProducts(response.data.data || []);
     } catch (err) {
       console.error('Error fetching products:', err);
@@ -399,8 +399,8 @@ const LocationSalesPage = () => {
                         key={date}
                         onClick={() => handleDateSelect(date)}
                         className={`w-full p-3 rounded-lg border transition-colors text-left ${selectedDate === date
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                           }`}
                       >
                         <div className="flex justify-between items-center">
@@ -778,7 +778,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
           <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (ETB)</label>
           <input
             type="number"
-            
+
             value={formData.price}
             onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -805,8 +805,8 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
             type="submit"
             disabled={isSubmitting || !formData.productId || !formData.quantity || !formData.price}
             className={`flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors ${isSubmitting || !formData.productId || !formData.quantity || !formData.price
-                ? 'opacity-50 cursor-not-allowed'
-                : ''
+              ? 'opacity-50 cursor-not-allowed'
+              : ''
               }`}
           >
             {isSubmitting ? 'Processing...' : 'Record Sale'}
@@ -943,7 +943,7 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
     price: sale.price.toString(),
     description: sale.description || '',
   });
-  const [saleDate, setSaleDate] = useState<string>(sale.date.split('T')[0]);
+  const [saleDate, setSaleDate] = useState<string>(sale.date);
   const selectedProduct = products.find(p => p._id === formData.productId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1046,7 +1046,7 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
           <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (ETB)</label>
           <input
             type="number"
-           
+
             value={formData.price}
             onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1073,8 +1073,8 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
             type="submit"
             disabled={isSubmitting || !formData.productId || !formData.quantity || !formData.price}
             className={`flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors ${isSubmitting || !formData.productId || !formData.quantity || !formData.price
-                ? 'opacity-50 cursor-not-allowed'
-                : ''
+              ? 'opacity-50 cursor-not-allowed'
+              : ''
               }`}
           >
             {isSubmitting ? 'Processing...' : 'Update Sale'}
@@ -1285,7 +1285,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
                 </div>
                 <div className="md:col-span-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Price (ETB)</label>
-                  <input type="number"  value={row.price} onChange={(e) => updateRow(row.id, { price: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="number" value={row.price} onChange={(e) => updateRow(row.id, { price: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
                 </div>
                 <div className="md:col-span-2">
                   <div className="text-sm text-gray-600 mb-1">Total</div>

@@ -17,8 +17,9 @@ const transactionSchema = new mongoose.Schema({
     min: [0.01, 'Quantity must be at least 0.01']
   },
   date: {
-    type: Date,
-    required: [true, 'Date is required']
+    type: String,
+    required: [true, 'Date is required'],
+    match: [/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format']
   },
   description: {
     type: String,

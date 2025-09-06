@@ -45,7 +45,7 @@ router.post('/bulk', async (req, res) => {
         productId,
         type: 'out',
         quantity,
-        date: new Date(date),
+        date: date,
         description: `Sale of ${quantity} units at ${price} ETB each`
       });
       await transaction.save();
@@ -56,7 +56,7 @@ router.post('/bulk', async (req, res) => {
       const sale = new Sale({
         productId,
         productName,
-        date: new Date(date),
+        date: date,
         location,
         quantity,
         price,
@@ -105,7 +105,7 @@ router.post('/', async (req, res) => {
       productId,
       type: 'out',
       quantity,
-      date: new Date(date),
+      date: date,
       description: `Sale of ${quantity} units at ${price} ETB each`
     });
 
@@ -119,7 +119,7 @@ router.post('/', async (req, res) => {
     const sale = new Sale({
       productId,
       productName,
-      date: new Date(date),
+      date: date,
       location,
       quantity,
       price,
@@ -151,8 +151,8 @@ router.get('/summary', async (req, res) => {
     const match = {};
     if (startDate || endDate) {
       match.date = {};
-      if (startDate) match.date.$gte = new Date(startDate);
-      if (endDate) match.date.$lte = new Date(endDate);
+      if (startDate) match.date.$gte = startDate;
+      if (endDate) match.date.$lte = endDate;
     }
     
     if (location) match.location = location;
@@ -162,7 +162,7 @@ router.get('/summary', async (req, res) => {
       {
         $group: {
           _id: {
-            date: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+            date: '$date',
             location: '$location'
           },
           totalSales: { $sum: '$total' },
@@ -195,11 +195,7 @@ router.get('/', async (req, res) => {
     
     // Date filter
     if (date) {
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
-      query.date = { $gte: startDate, $lte: endDate };
+      query.date = date;
     }
     
     // Location filter
@@ -264,7 +260,7 @@ router.put('/:id', async (req, res) => {
     // Update sale
     sale.productId = productId || sale.productId;
     sale.productName = productName || sale.productName;
-    sale.date = date ? new Date(date) : sale.date;
+    sale.date = date || sale.date;
     sale.location = location || sale.location;
     sale.quantity = quantity;
     sale.price = price;

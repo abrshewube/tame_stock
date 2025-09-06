@@ -13,9 +13,9 @@ const saleSchema = new mongoose.Schema({
     trim: true
   },
   date: {
-    type: Date,
+    type: String,
     required: [true, 'Sale date is required'],
-    default: Date.now
+    match: [/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format']
   },
   location: {
     type: String,

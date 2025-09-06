@@ -12,16 +12,11 @@ router.get('/transactions', async (req, res) => {
       return res.status(400).json({ success: false, message: 'location and date are required' });
     }
 
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
-
     const products = await Product.find({ location }).select('_id name');
     const productIdToName = new Map(products.map(p => [p._id.toString(), p.name]));
     const productIds = products.map(p => p._id);
 
-    const filter = { productId: { $in: productIds }, date: { $gte: startDate, $lte: endDate } };
+    const filter = { productId: { $in: productIds }, date: date };
     if (type === 'in' || type === 'out') {
       filter.type = type;
     }
@@ -63,7 +58,7 @@ router.post('/transactions/bulk', async (req, res) => {
         productId: it.productId,
         type: 'in',
         quantity: it.quantity,
-        date: new Date(date),
+        date: date,
         description
       });
       await txn.save();
@@ -87,7 +82,7 @@ const validateProduct = [
 const validateTransaction = [
   body('type').isIn(['in', 'out']).withMessage('Transaction type must be "in" or "out"'),
   body('quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be a positive number'),
-  body('date').isISO8601().withMessage('Valid date is required')
+  body('date').matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('Date must be in YYYY-MM-DD format')
 ];
 
 // GET /api/products - Get all products with balance
@@ -252,7 +247,7 @@ router.post('/', validateProduct, async (req, res) => {
         productId: savedProduct._id,
         type: 'in',
         quantity: req.body.initialBalance,
-        date: new Date(),
+        date: new Date().toISOString().split('T')[0],
         description: 'Initial balance'
       });
       await initialTransaction.save();
@@ -512,7 +507,7 @@ router.put('/:productId/transactions/:transactionId', validateTransaction, async
     // Only allow updating certain fields
     const updates = {
       quantity: req.body.quantity,
-      date: new Date(req.body.date),
+      date: req.body.date,
       description: req.body.description,
     };
 
