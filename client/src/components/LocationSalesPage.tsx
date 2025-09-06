@@ -87,6 +87,7 @@ const LocationSalesPage = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [stockIn, setStockIn] = useState<any[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -167,6 +168,74 @@ const LocationSalesPage = () => {
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
+  };
+
+  const handleDateCheckboxChange = (date: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDates(prev => [...prev, date]);
+    } else {
+      setSelectedDates(prev => prev.filter(d => d !== date));
+    }
+  };
+
+  const handleSelectAllDates = () => {
+    if (selectedDates.length === availableDates.length) {
+      setSelectedDates([]);
+    } else {
+      setSelectedDates([...availableDates]);
+    }
+  };
+
+  const handleBulkDeleteDates = async () => {
+    if (selectedDates.length === 0) {
+      setError('Please select at least one date to delete.');
+      return;
+    }
+
+    const confirmMessage = `Are you sure you want to delete all sales for ${selectedDates.length} selected date(s)? This action cannot be undone.`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+      setSuccess('');
+
+      let deletedCount = 0;
+      for (const date of selectedDates) {
+        console.log('Deleting sales for date:', date, 'location:', location);
+        
+        const response = await axios.get(`${API_URL}/sales?location=${location}&date=${date}`);
+        const salesToDelete = response.data.docs || response.data.data || [];
+        
+        for (const sale of salesToDelete) {
+          await axios.delete(`${API_URL}/sales/${sale._id}`);
+          deletedCount++;
+        }
+      }
+
+      setSuccess(`Successfully deleted ${deletedCount} sales from ${selectedDates.length} date(s)!`);
+      setSelectedDates([]);
+
+      // Refresh all data
+      await Promise.all([
+        fetchProducts(),
+        fetchAvailableDates(),
+        fetchSales(),
+        fetchStockIn()
+      ]);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+
+    } catch (err: any) {
+      console.error('Error bulk deleting dates:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to delete selected dates. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteDate = async (date: string) => {
@@ -511,10 +580,31 @@ const LocationSalesPage = () => {
             {/* Available Dates List */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                  Available Dates
-                </h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                    <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                    Available Dates
+                  </h2>
+                  {availableDates.length > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleSelectAllDates}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {selectedDates.length === availableDates.length ? 'Unselect All' : 'Select All'}
+                      </button>
+                      {selectedDates.length > 0 && (
+                        <button
+                          onClick={handleBulkDeleteDates}
+                          disabled={isSubmitting}
+                          className="text-sm text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                        >
+                          Delete Selected ({selectedDates.length})
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {availableDates.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">No sales recorded yet</p>
                 ) : (
@@ -527,34 +617,47 @@ const LocationSalesPage = () => {
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                           }`}
                       >
-                        <button
-                          onClick={() => handleDateSelect(date)}
-                          className="w-full text-left"
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className={`font-medium ${selectedDate === date ? 'text-blue-700' : 'text-gray-800'}`}>
-                              {formatDate(date)}
-                            </span>
-                            <span className="text-sm text-gray-500">
-                              {getSalesCountForDate(date)} sales
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-600 mt-1">
-                            Total: ETB {getTotalSalesForDate(date).toFixed(2)}
-                          </div>
-                        </button>
-                        <div className="flex justify-end mt-2">
-                          <button
-                            onClick={(e) => {
+                        <div className="flex items-start space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedDates.includes(date)}
+                            onChange={(e) => {
                               e.stopPropagation();
-                              handleDeleteDate(date);
+                              handleDateCheckboxChange(date, e.target.checked);
                             }}
-                            disabled={isSubmitting}
-                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                            title="Delete all sales for this date"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
+                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <div className="flex-1">
+                            <button
+                              onClick={() => handleDateSelect(date)}
+                              className="w-full text-left"
+                            >
+                              <div className="flex justify-between items-center">
+                                <span className={`font-medium ${selectedDate === date ? 'text-blue-700' : 'text-gray-800'}`}>
+                                  {formatDate(date)}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  {getSalesCountForDate(date)} sales
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                Total: ETB {getTotalSalesForDate(date).toFixed(2)}
+                              </div>
+                            </button>
+                            <div className="flex justify-end mt-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteDate(date);
+                                }}
+                                disabled={isSubmitting}
+                                className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                title="Delete all sales for this date"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
