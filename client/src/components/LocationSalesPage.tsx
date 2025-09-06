@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2, X } from 'lucide-react';
 import axios from 'axios';
 import { recordSalesBatch } from '../services/saleService';
 
@@ -103,7 +103,8 @@ const LocationSalesPage = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get(`${API_URL}/products?location=${location}`);
+      const encodedLocation = encodeURIComponent(location!);
+      const response = await axios.get(`${API_URL}/products?location=${encodedLocation}`);
 
       setProducts(response.data.data || []);
     } catch (err) {
@@ -114,13 +115,22 @@ const LocationSalesPage = () => {
 
   const fetchSales = async () => {
     try {
-      const response = await axios.get(`${API_URL}/sales?location=${location}&date=${selectedDate}`);
+      console.log('Fetching sales for location:', location, 'date:', selectedDate);
+      const encodedLocation = encodeURIComponent(location!);
+      console.log('Encoded location:', encodedLocation);
+      
+      const response = await axios.get(`${API_URL}/sales?location=${encodedLocation}&date=${selectedDate}`);
       const salesData = response.data.docs || response.data.data || [];
+      console.log('Sales data for selected date:', salesData);
       setSales(salesData);
-      const allSalesResponse = await axios.get(`${API_URL}/sales?location=${location}`);
+      
+      const allSalesResponse = await axios.get(`${API_URL}/sales?location=${encodedLocation}`);
       const allSales = (allSalesResponse.data.docs || allSalesResponse.data.data || []) as Sale[];
+      console.log('All sales for location:', allSales);
+      
       const dates: string[] = Array.from(new Set(allSales.map((sale: Sale) => sale.date)));
-      dates.sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime());
+      dates.sort((a: string, b: string) => b.localeCompare(a));
+      console.log('Available dates:', dates);
       setAvailableDates(dates);
     } catch (err) {
       console.error('Error fetching sales:', err);
@@ -130,8 +140,9 @@ const LocationSalesPage = () => {
 
   const fetchStockIn = async () => {
     try {
+      const encodedLocation = encodeURIComponent(location!);
       const response = await axios.get(`${API_URL}/products/transactions`, {
-        params: { location, date: selectedDate, type: 'in' }
+        params: { location: encodedLocation, date: selectedDate, type: 'in' }
       });
       setStockIn(response.data.data || []);
     } catch (err) {
@@ -141,6 +152,40 @@ const LocationSalesPage = () => {
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
+  };
+
+  const handleDeleteDate = async (date: string) => {
+    if (!window.confirm(`Are you sure you want to delete all sales for ${formatDate(date)}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+      
+      // Get all sales for this date
+      const encodedLocation = encodeURIComponent(location!);
+      const response = await axios.get(`${API_URL}/sales?location=${encodedLocation}&date=${date}`);
+      const salesToDelete = response.data.docs || response.data.data || [];
+      
+      // Delete each sale
+      for (const sale of salesToDelete) {
+        await axios.delete(`${API_URL}/sales/${sale._id}`);
+      }
+      
+      setSuccess(`All sales for ${formatDate(date)} have been deleted successfully!`);
+      
+      // Refresh data
+      fetchSales();
+      fetchProducts();
+      
+    } catch (err: any) {
+      console.error('Error deleting sales for date:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to delete sales for this date. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddSale = async (formData: SaleFormData, saleDate: string) => {
@@ -397,24 +442,43 @@ const LocationSalesPage = () => {
                 ) : (
                   <div className="space-y-2">
                     {availableDates.map((date) => (
-                      <button
+                      <div
                         key={date}
-                        onClick={() => handleDateSelect(date)}
-                        className={`w-full p-3 rounded-lg border transition-colors text-left ${selectedDate === date
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        className={`w-full p-3 rounded-lg border transition-colors ${selectedDate === date
+                          ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                           }`}
                       >
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">{formatDate(date)}</span>
-                          <span className="text-sm text-gray-500">
-                            {getSalesCountForDate(date)} sales
-                          </span>
+                        <button
+                          onClick={() => handleDateSelect(date)}
+                          className="w-full text-left"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className={`font-medium ${selectedDate === date ? 'text-blue-700' : 'text-gray-800'}`}>
+                              {formatDate(date)}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {getSalesCountForDate(date)} sales
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            Total: ETB {getTotalSalesForDate(date).toFixed(2)}
+                          </div>
+                        </button>
+                        <div className="flex justify-end mt-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteDate(date);
+                            }}
+                            disabled={isSubmitting}
+                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                            title="Delete all sales for this date"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          Total: ETB {getTotalSalesForDate(date).toFixed(2)}
-                        </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
