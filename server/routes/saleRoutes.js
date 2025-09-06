@@ -182,6 +182,7 @@ router.get('/summary', async (req, res) => {
   }
 });
 
+
 // Get detailed sales with pagination and filtering
 router.get('/', async (req, res) => {
   try {
@@ -189,8 +190,7 @@ router.get('/', async (req, res) => {
       date, 
       location, 
       search = '', 
-      page = 1, 
-      limit = 1000
+      page = 1 // default page 1
     } = req.query;
     
     const query = {};
@@ -199,7 +199,6 @@ router.get('/', async (req, res) => {
     if (date) {
       query.date = date;
     }
-    console.log(location)
     
     // Location filter
     if (location) query.location = location;
@@ -211,12 +210,12 @@ router.get('/', async (req, res) => {
 
     const options = {
       page: parseInt(page, 10),
-      limit: parseInt(limit, 1000),
+      limit: 1000, // always force 1000
       sort: { date: -1, createdAt: -1 },
       select: '-__v'
     };
 
-    // Execute query with pagination
+    // Execute query with pagination (limit is fixed at 1000)
     const result = await Sale.paginate(query, options);
     
     res.json(result);
@@ -228,6 +227,7 @@ router.get('/', async (req, res) => {
     });
   }
 });
+
 // Update a sale
 router.put('/:id', async (req, res) => {
   try {
