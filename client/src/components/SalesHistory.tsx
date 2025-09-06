@@ -34,13 +34,20 @@ const SalesHistory = () => {
     fetchSales();
   }, [currentPage, searchTerm, locationFilter, dateFilter]);
 
+  // Reset to page 1 when date filter changes
+  useEffect(() => {
+    if (dateFilter) {
+      setCurrentPage(1);
+    }
+  }, [dateFilter]);
+
   const fetchSales = async () => {
     try {
       setLoading(true);
       setError('');
       
       const params = new URLSearchParams({
-        page: currentPage.toString(),
+        page: dateFilter ? '1' : currentPage.toString(),
         limit: limit.toString(),
       });
       
