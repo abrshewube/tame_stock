@@ -27,7 +27,8 @@ const SalesHistory = () => {
   const [dateFilter, setDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 10;
+  // Use higher limit when date filter is applied to show all sales for that date
+  const limit = dateFilter ? 1000 : 10;
 
   useEffect(() => {
     fetchSales();
@@ -234,7 +235,8 @@ const SalesHistory = () => {
                 </table>
               </div>
 
-              {/* Pagination */}
+              {/* Pagination - only show when not filtering by date */}
+              {!dateFilter && (
               <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div className="flex-1 flex justify-between sm:hidden">
                   <button
@@ -311,6 +313,7 @@ const SalesHistory = () => {
                   </div>
                 </div>
               </div>
+              )}
             </>
           )}
         </div>
