@@ -96,6 +96,12 @@ const LocationSalesPage = () => {
   useEffect(() => {
     if (location) {
       fetchProducts();
+      fetchAvailableDates();
+    }
+  }, [location]);
+
+  useEffect(() => {
+    if (location && selectedDate) {
       fetchSales();
       fetchStockIn();
     }
@@ -116,11 +122,23 @@ const LocationSalesPage = () => {
     try {
       console.log('Fetching sales for location:', location, 'date:', selectedDate);
       
+      // Fetch sales for the selected date
       const response = await axios.get(`${API_URL}/sales?location=${location}&date=${selectedDate}`);
       const salesData = response.data.docs || response.data.data || [];
       console.log('Sales data for selected date:', salesData);
       setSales(salesData);
       
+    } catch (err) {
+      console.error('Error fetching sales:', err);
+      setError('Failed to load sales data. Please try again.');
+    }
+  };
+
+  const fetchAvailableDates = async () => {
+    try {
+      console.log('Fetching all sales for location:', location);
+      
+      // Fetch all sales for this location to get available dates
       const allSalesResponse = await axios.get(`${API_URL}/sales?location=${location}`);
       const allSales = (allSalesResponse.data.docs || allSalesResponse.data.data || []) as Sale[];
       console.log('All sales for location:', allSales);
@@ -129,9 +147,10 @@ const LocationSalesPage = () => {
       dates.sort((a: string, b: string) => b.localeCompare(a));
       console.log('Available dates:', dates);
       setAvailableDates(dates);
+      
     } catch (err) {
-      console.error('Error fetching sales:', err);
-      setError('Failed to load sales data. Please try again.');
+      console.error('Error fetching available dates:', err);
+      setError('Failed to load available dates. Please try again.');
     }
   };
 
@@ -181,12 +200,16 @@ const LocationSalesPage = () => {
       
       setSuccess(`All sales for ${formatDate(date)} have been deleted successfully!`);
       
+      // Refresh all data
+      await Promise.all([
+        fetchProducts(),
+        fetchAvailableDates(),
+        fetchSales(),
+        fetchStockIn()
+      ]);
+      
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
-      
-      // Refresh data
-      fetchSales();
-      fetchProducts();
       
     } catch (err: any) {
       console.error('Error deleting sales for date:', err);
@@ -201,17 +224,32 @@ const LocationSalesPage = () => {
     try {
       setIsSubmitting(true);
       setError('');
+      setSuccess('');
+      
       const saleData = {
         ...formData,
         date: saleDate,
         location: location!,
         total: formData.quantity * formData.price
       };
+      
+      console.log('Adding sale:', saleData);
       await axios.post(`${API_URL}/sales`, saleData);
+      
       setSuccess('Sale recorded successfully!');
       setShowSaleForm(false);
-      fetchProducts();
-      fetchSales();
+      
+      // Refresh all data
+      await Promise.all([
+        fetchProducts(),
+        fetchAvailableDates(),
+        fetchSales(),
+        fetchStockIn()
+      ]);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+      
       return true;
     } catch (err: any) {
       console.error('Error recording sale:', err);
@@ -258,9 +296,25 @@ const LocationSalesPage = () => {
     if (!window.confirm('Are you sure you want to delete this sale?')) return;
     try {
       setIsSubmitting(true);
+      setError('');
+      setSuccess('');
+      
+      console.log('Deleting sale:', saleId);
       await axios.delete(`${API_URL}/sales/${saleId}`);
+      
       setSuccess('Sale deleted successfully!');
-      fetchSales();
+      
+      // Refresh all data
+      await Promise.all([
+        fetchProducts(),
+        fetchAvailableDates(),
+        fetchSales(),
+        fetchStockIn()
+      ]);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+      
     } catch (err: any) {
       console.error('Error deleting sale:', err);
       const errorMessage = err.response?.data?.message || 'Failed to delete sale. Please try again.';
@@ -322,17 +376,32 @@ const LocationSalesPage = () => {
     try {
       setIsSubmitting(true);
       setError('');
+      setSuccess('');
+      
       const saleData = {
         ...formData,
         date: saleDate,
         location: location!,
         total: formData.quantity * formData.price
       };
+      
+      console.log('Updating sale:', saleData);
       await axios.put(`${API_URL}/sales/${selectedSale?._id}`, saleData);
+      
       setSuccess('Sale updated successfully!');
       setShowEditSaleForm(false);
-      fetchProducts();
-      fetchSales();
+      
+      // Refresh all data
+      await Promise.all([
+        fetchProducts(),
+        fetchAvailableDates(),
+        fetchSales(),
+        fetchStockIn()
+      ]);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+      
       return true;
     } catch (err: any) {
       console.error('Error updating sale:', err);
@@ -645,10 +714,14 @@ const LocationSalesPage = () => {
                   products={products}
                   defaultDate={selectedDate}
                   locationName={location}
-                  onSuccess={() => {
+                  onSuccess={async () => {
                     setShowBatchForm(false);
-                    fetchProducts();
-                    fetchSales();
+                    await Promise.all([
+                      fetchProducts(),
+                      fetchAvailableDates(),
+                      fetchSales(),
+                      fetchStockIn()
+                    ]);
                   }}
                   onCancel={() => setShowBatchForm(false)}
                 />
@@ -679,10 +752,14 @@ const LocationSalesPage = () => {
                   products={products}
                   defaultDate={selectedDate}
                   locationName={location}
-                  onSuccess={() => {
+                  onSuccess={async () => {
                     setShowBatchStockForm(false);
-                    fetchProducts();
-                    fetchStockIn();
+                    await Promise.all([
+                      fetchProducts(),
+                      fetchAvailableDates(),
+                      fetchSales(),
+                      fetchStockIn()
+                    ]);
                   }}
                   onCancel={() => setShowBatchStockForm(false)}
                 />
