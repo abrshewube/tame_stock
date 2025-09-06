@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Product, ProductFormData, productService } from '../services/api';
 
-export const useProducts = (location?: 'Adama' | 'Addis Ababa' | 'Chemicals') => {
+export const useProducts = (location?: 'Adama' | 'AddisAbaba' | 'Chemicals') => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);

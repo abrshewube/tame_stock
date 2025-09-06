@@ -7,7 +7,7 @@ interface ProductFormProps {
   onSubmit: (data: ProductFormData) => Promise<boolean>;
   onCancel: () => void;
   isEditing?: boolean;
-  location?: 'Adama' | 'Addis Ababa';
+  location?: 'Adama' | 'AddisAbaba' | 'Chemicals';
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({
@@ -101,7 +101,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="Adama">Adama</option>
-            <option value="Addis Ababa">Addis Ababa</option>
+            <option value="AddisAbaba">AddisAbaba</option>
             <option value="Chemicals">Chemicals</option>
           </select>
         </div>

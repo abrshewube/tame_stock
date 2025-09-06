@@ -13,7 +13,7 @@ import { ProductForm } from "./components/ProductForm"
 import { LoadingSpinner } from "./components/LoadingSpinner"
 import { useProducts } from "./hooks/useProducts"
 
-type Location = "Adama" | "Addis Ababa" | "Chemicals"
+type Location = "Adama" | "AddisAbaba" | "Chemicals"
 
 const ManagementCard = ({
   title,
@@ -99,9 +99,9 @@ function HomePage() {
       count: products.filter((p) => p.location === "Adama").length,
       totalStock: products.filter((p) => p.location === "Adama").reduce((sum, p) => sum + (p.balance || 0), 0),
     },
-    "Addis Ababa": {
-      count: products.filter((p) => p.location === "Addis Ababa").length,
-      totalStock: products.filter((p) => p.location === "Addis Ababa").reduce((sum, p) => sum + (p.balance || 0), 0),
+    "AddisAbaba": {
+      count: products.filter((p) => p.location === "AddisAbaba").length,
+      totalStock: products.filter((p) => p.location === "AddisAbaba").reduce((sum, p) => sum + (p.balance || 0), 0),
     },
     Chemicals: {
       count: products.filter((p) => p.location === "Chemicals").length,
@@ -141,11 +141,11 @@ function HomePage() {
                 onClick={() => {}}
               />
             </a>
-            <a href="/location/Addis Ababa" className="block group">
+            <a href="/location/AddisAbaba" className="block group">
               <LocationCard
-                name="Addis Ababa"
-                productCount={locationStats["Addis Ababa"].count}
-                totalStock={locationStats["Addis Ababa"].totalStock}
+                name="AddisAbaba"
+                productCount={locationStats["AddisAbaba"].count}
+                totalStock={locationStats["AddisAbaba"].totalStock}
                 onClick={() => {}}
               />
             </a>
@@ -190,7 +190,7 @@ function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <SalesLocationCard location="Adama" color="green" />
-            <SalesLocationCard location="Addis Ababa" color="blue" />
+            <SalesLocationCard location="AddisAbaba" color="blue" />
             <SalesLocationCard location="Chemicals" color="purple" />
           </div>
         </div>
@@ -324,7 +324,7 @@ function LocationPage({ location }: { location: Location }) {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
               <ProductForm
-                location={location}
+                location={location as 'Adama' | 'AddisAbaba' | 'Chemicals'}
                 onSubmit={addProduct}
                 onCancel={() => setShowAddForm(false)}
               />
@@ -343,7 +343,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/location/Adama" element={<LocationPage location="Adama" />} />
-        <Route path="/location/Addis Ababa" element={<LocationPage location="Addis Ababa" />} />
+        <Route path="/location/AddisAbaba" element={<LocationPage location="AddisAbaba" />} />
         <Route path="/location/Chemicals" element={<LocationPage location="Chemicals" />} />
         <Route path="/sales/:location" element={<LocationSalesPage />} />
         <Route path="/daily-sales" element={<DailySalesPage />} />

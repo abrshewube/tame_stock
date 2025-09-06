@@ -125,7 +125,7 @@ const SalesHistory = () => {
               >
                 <option value="">All Locations</option>
                 <option value="Adama">Adama</option>
-                <option value="Addis Ababa">Addis Ababa</option>
+000000000000000000000000000000000000000000                <option value="AddisAbaba">AddisAbaba</option>
               </select>
               
               <input

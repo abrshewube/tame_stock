@@ -74,7 +74,7 @@ router.post('/transactions/bulk', async (req, res) => {
 // Validation middleware for products
 const validateProduct = [
   body('name').notEmpty().trim().withMessage('Product name is required'),
-  body('location').isIn(['Adama', 'Addis Ababa', 'Chemicals']).withMessage('Invalid location'),
+  body('location').isIn(['Adama', 'AddisAbaba', 'Chemicals']).withMessage('Invalid location'),
   body('initialBalance').isFloat({ min: 0 }).withMessage('Initial balance must be a non-negative number')
 ];
 
@@ -142,7 +142,7 @@ router.get('/location/:location', async (req, res) => {
   try {
     const { location } = req.params;
     
-    if (!['Adama', 'Addis Ababa','Chemicals'].includes(location)) {
+    if (!['Adama', 'AddisAbaba','Chemicals'].includes(location)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid location'

@@ -31,7 +31,7 @@ api.interceptors.response.use(
 export interface Product {
   _id: string;
   name: string;
-  location: 'Adama' | 'Addis Ababa' | 'Chemicals';
+  location: 'Adama' | 'AddisAbaba' | 'Chemicals';
   initialBalance: number;
   price: number;
   dateAdded: string;
@@ -69,7 +69,7 @@ export interface Sale {
 
 export interface ProductFormData {
   name: string;
-  location: 'Adama' | 'Addis Ababa' | 'Chemicals';
+  location: 'Adama' | 'AddisAbaba' | 'Chemicals';
   initialBalance: number;
   price: number;
 }
@@ -103,7 +103,7 @@ export const productService = {
   },
 
   // Get products by location
-  getProductsByLocation: async (location: 'Adama' | 'Addis Ababa'): Promise<Product[]> => {
+  getProductsByLocation: async (location: 'Adama' | 'AddisAbaba'): Promise<Product[]> => {
     const response = await api.get<ApiResponse<Product[]>>(`/products/location/${location}`);
     return response.data.data;
   },

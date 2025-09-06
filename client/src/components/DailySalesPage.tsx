@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, History } from 'lucide-react';
 import axios from 'axios';
 
-type Location = 'Adama' | 'Addis Ababa';
+type Location = 'Adama' | 'AddisAbaba';
 
 interface Product {
   _id: string;
@@ -191,7 +191,7 @@ const DailySalesPage = () => {
                   required
                 >
                   <option value="Adama">Adama</option>
-                  <option value="Addis Ababa">Addis Ababa</option>
+                  <option value="AddisAbaba">AddisAbaba</option>
                 </select>
               </div>
 

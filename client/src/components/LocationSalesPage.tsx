@@ -103,8 +103,7 @@ const LocationSalesPage = () => {
 
   const fetchProducts = async () => {
     try {
-      const encodedLocation = encodeURIComponent(location!);
-      const response = await axios.get(`${API_URL}/products?location=${encodedLocation}`);
+      const response = await axios.get(`${API_URL}/products?location=${location}`);
 
       setProducts(response.data.data || []);
     } catch (err) {
@@ -116,15 +115,13 @@ const LocationSalesPage = () => {
   const fetchSales = async () => {
     try {
       console.log('Fetching sales for location:', location, 'date:', selectedDate);
-      const encodedLocation = encodeURIComponent(location!);
-      console.log('Encoded location:', encodedLocation);
       
-      const response = await axios.get(`${API_URL}/sales?location=${encodedLocation}&date=${selectedDate}`);
+      const response = await axios.get(`${API_URL}/sales?location=${location}&date=${selectedDate}`);
       const salesData = response.data.docs || response.data.data || [];
       console.log('Sales data for selected date:', salesData);
       setSales(salesData);
       
-      const allSalesResponse = await axios.get(`${API_URL}/sales?location=${encodedLocation}`);
+      const allSalesResponse = await axios.get(`${API_URL}/sales?location=${location}`);
       const allSales = (allSalesResponse.data.docs || allSalesResponse.data.data || []) as Sale[];
       console.log('All sales for location:', allSales);
       
@@ -140,9 +137,8 @@ const LocationSalesPage = () => {
 
   const fetchStockIn = async () => {
     try {
-      const encodedLocation = encodeURIComponent(location!);
       const response = await axios.get(`${API_URL}/products/transactions`, {
-        params: { location: encodedLocation, date: selectedDate, type: 'in' }
+        params: { location, date: selectedDate, type: 'in' }
       });
       setStockIn(response.data.data || []);
     } catch (err) {
@@ -162,18 +158,31 @@ const LocationSalesPage = () => {
     try {
       setIsSubmitting(true);
       setError('');
+      setSuccess('');
+      
+      console.log('Deleting sales for date:', date, 'location:', location);
       
       // Get all sales for this date
-      const encodedLocation = encodeURIComponent(location!);
-      const response = await axios.get(`${API_URL}/sales?location=${encodedLocation}&date=${date}`);
+      const response = await axios.get(`${API_URL}/sales?location=${location}&date=${date}`);
       const salesToDelete = response.data.docs || response.data.data || [];
+      
+      console.log('Sales to delete:', salesToDelete);
+      
+      if (salesToDelete.length === 0) {
+        setError('No sales found for this date.');
+        return;
+      }
       
       // Delete each sale
       for (const sale of salesToDelete) {
+        console.log('Deleting sale:', sale._id);
         await axios.delete(`${API_URL}/sales/${sale._id}`);
       }
       
       setSuccess(`All sales for ${formatDate(date)} have been deleted successfully!`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
       
       // Refresh data
       fetchSales();
