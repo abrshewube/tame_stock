@@ -147,6 +147,7 @@ router.post('/', async (req, res) => {
 router.get('/summary', async (req, res) => {
   try {
     const { startDate, endDate, location } = req.query;
+    console.log(location)
     
     const match = {};
     if (startDate || endDate) {
@@ -154,6 +155,7 @@ router.get('/summary', async (req, res) => {
       if (startDate) match.date.$gte = startDate;
       if (endDate) match.date.$lte = endDate;
     }
+
     
     if (location) match.location = location;
 
@@ -197,6 +199,7 @@ router.get('/', async (req, res) => {
     if (date) {
       query.date = date;
     }
+    console.log(location)
     
     // Location filter
     if (location) query.location = location;
