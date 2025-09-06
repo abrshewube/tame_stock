@@ -56,7 +56,9 @@ export const getStockStatus = (balance: number, totalIn: number) => {
 };
 
 export const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  // Handle both string dates (YYYY-MM-DD) and ISO date strings
+  const date = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T00:00:00');
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
@@ -91,11 +93,11 @@ export const calculateDynamicStock = (
   
   // Filter transactions and sales by date if targetDate is provided
   const relevantTransactions = targetDate 
-    ? transactions.filter(t => new Date(t.date) <= new Date(targetDate))
+    ? transactions.filter(t => t.date <= targetDate)
     : transactions;
   
   const relevantSales = targetDate
-    ? sales.filter(s => new Date(s.date) <= new Date(targetDate))
+    ? sales.filter(s => s.date <= targetDate)
     : sales;
   
   // Apply transactions (in/out)

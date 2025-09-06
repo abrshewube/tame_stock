@@ -23,7 +23,7 @@ interface DateSummary {
   products: string[];
 }
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://tame-stock.onrender.com/api';
 
 const SalesHistoryPage = () => {
   const navigate = useNavigate();
@@ -77,8 +77,8 @@ const SalesHistoryPage = () => {
         };
       });
 
-      // Sort by date (newest first)
-      summaries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      // Sort by date (newest first) - dates are now strings in YYYY-MM-DD format
+      summaries.sort((a, b) => b.date.localeCompare(a.date));
       setDateSummaries(summaries);
       
     } catch (err) {
@@ -110,7 +110,9 @@ const SalesHistoryPage = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Handle both string dates (YYYY-MM-DD) and ISO date strings
+    const date = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

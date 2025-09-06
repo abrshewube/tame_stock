@@ -15,7 +15,7 @@ interface Sale {
   createdAt: string;
 }
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://tame-stock.onrender.com/api';
 
 const SalesHistory = () => {
   const navigate = useNavigate();
@@ -75,7 +75,9 @@ const SalesHistory = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Handle both string dates (YYYY-MM-DD) and ISO date strings
+    const date = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
