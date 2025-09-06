@@ -38,6 +38,8 @@ export interface Product {
   balance?: number;
   totalIn?: number;
   totalOut?: number;
+  imageUrl?: string; // URL to product image
+  imagePath?: string; // Local path for development
   createdAt: string;
   updatedAt: string;
 }
@@ -72,6 +74,8 @@ export interface ProductFormData {
   location: 'Adama' | 'AddisAbaba' | 'Chemicals';
   initialBalance: number;
   price: number;
+  imageFile?: File; // For file upload
+  imageUrl?: string; // For existing image URL
 }
 
 export interface TransactionFormData {

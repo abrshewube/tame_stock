@@ -190,7 +190,7 @@ router.get('/', async (req, res) => {
       location, 
       search = '', 
       page = 1, 
-      limit = 10 
+      limit = 1000
     } = req.query;
     
     const query = {};
@@ -211,7 +211,7 @@ router.get('/', async (req, res) => {
 
     const options = {
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: parseInt(limit, 1000),
       sort: { date: -1, createdAt: -1 },
       select: '-__v'
     };

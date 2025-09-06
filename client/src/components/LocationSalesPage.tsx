@@ -125,6 +125,7 @@ const LocationSalesPage = () => {
       
       // Fetch sales for the selected date
       const response = await axios.get(`${API_URL}/sales?location=${location}&date=${selectedDate}`);
+      console.log("selected data",response.data)
       const salesData = response.data.docs || response.data.data || [];
       console.log('Sales data for selected date:', salesData);
       setSales(salesData);
@@ -170,11 +171,11 @@ const LocationSalesPage = () => {
     setSelectedDate(date);
   };
 
-  const handleDateCheckboxChange = (date: string, checked: boolean) => {
-    if (checked) {
-      setSelectedDates(prev => [...prev, date]);
-    } else {
+  const handleDateToggle = (date: string) => {
+    if (selectedDates.includes(date)) {
       setSelectedDates(prev => prev.filter(d => d !== date));
+    } else {
+      setSelectedDates(prev => [...prev, date]);
     }
   };
 
@@ -581,10 +582,15 @@ const LocationSalesPage = () => {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                    <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                    Available Dates
-                  </h2>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                      <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                      Available Dates
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Click to view • Double-click to select/unselect
+                    </p>
+                  </div>
                   {availableDates.length > 0 && (
                     <div className="flex items-center space-x-2">
                       <button
@@ -609,58 +615,64 @@ const LocationSalesPage = () => {
                   <p className="text-gray-500 text-center py-4">No sales recorded yet</p>
                 ) : (
                   <div className="space-y-2">
-                    {availableDates.map((date) => (
-                      <div
-                        key={date}
-                        className={`w-full p-3 rounded-lg border transition-colors ${selectedDate === date
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    {availableDates.map((date) => {
+                      const isSelected = selectedDates.includes(date);
+                      const isActive = selectedDate === date;
+                      
+                      return (
+                        <div
+                          key={date}
+                          className={`w-full p-3 rounded-lg border transition-colors cursor-pointer ${
+                            isActive
+                              ? 'border-blue-500 bg-blue-50'
+                              : isSelected
+                              ? 'border-green-500 bg-green-50'
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                           }`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedDates.includes(date)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              handleDateCheckboxChange(date, e.target.checked);
-                            }}
-                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <div className="flex-1">
+                          onClick={() => handleDateSelect(date)}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            handleDateToggle(date);
+                          }}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className={`font-medium ${
+                              isActive 
+                                ? 'text-blue-700' 
+                                : isSelected 
+                                ? 'text-green-700' 
+                                : 'text-gray-800'
+                            }`}>
+                              {formatDate(date)}
+                              {isSelected && (
+                                <span className="ml-2 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                                  Selected
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {getSalesCountForDate(date)} sales
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            Total: ETB {getTotalSalesForDate(date).toFixed(2)}
+                          </div>
+                          <div className="flex justify-end mt-2">
                             <button
-                              onClick={() => handleDateSelect(date)}
-                              className="w-full text-left"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDate(date);
+                              }}
+                              disabled={isSubmitting}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                              title="Delete all sales for this date"
                             >
-                              <div className="flex justify-between items-center">
-                                <span className={`font-medium ${selectedDate === date ? 'text-blue-700' : 'text-gray-800'}`}>
-                                  {formatDate(date)}
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                  {getSalesCountForDate(date)} sales
-                                </span>
-                              </div>
-                              <div className="text-sm text-gray-600 mt-1">
-                                Total: ETB {getTotalSalesForDate(date).toFixed(2)}
-                              </div>
+                              <X className="h-4 w-4" />
                             </button>
-                            <div className="flex justify-end mt-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteDate(date);
-                                }}
-                                disabled={isSubmitting}
-                                className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                                title="Delete all sales for this date"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
