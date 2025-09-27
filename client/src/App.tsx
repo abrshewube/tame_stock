@@ -15,6 +15,16 @@ import { useProducts } from "./hooks/useProducts"
 
 type Location = "Adama" | "AddisAbaba" | "Chemicals"
 
+// Helper function to get display name for locations
+const getLocationDisplayName = (location: Location): string => {
+  const displayNames: Record<Location, string> = {
+    Adama: "Adama",
+    AddisAbaba: "Pysaa Seeds",
+    Chemicals: "Pysaa Chemicals"
+  };
+  return displayNames[location];
+};
+
 const ManagementCard = ({
   title,
   description,
@@ -83,7 +93,7 @@ const SalesLocationCard = ({ location, color }: { location: Location; color: str
           <ShoppingCart className="h-8 w-8" />
         </div>
         <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-          {location} Sales
+          {getLocationDisplayName(location)} Sales
         </h3>
         <p className="text-gray-600">Manage sales and track performance</p>
       </div>
@@ -143,18 +153,20 @@ function HomePage() {
             </a>
             <a href="/location/AddisAbaba" className="block group">
               <LocationCard
-                name="AddisAbaba"
+                name={getLocationDisplayName("AddisAbaba")}
                 productCount={locationStats["AddisAbaba"].count}
                 totalStock={locationStats["AddisAbaba"].totalStock}
                 onClick={() => {}}
+                locationValue="AddisAbaba"
               />
             </a>
             <a href="/location/Chemicals" className="block group">
               <LocationCard
-                name="Chemicals"
+                name={getLocationDisplayName("Chemicals")}
                 productCount={locationStats["Chemicals"].count}
                 totalStock={locationStats["Chemicals"].totalStock}
                 onClick={() => {}}
+                locationValue="Chemicals"
               />
             </a>
           </div>
@@ -212,7 +224,7 @@ function LocationPage({ location }: { location: Location }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <LoadingSpinner size="lg" message={`Loading ${location} inventory...`} />
+        <LoadingSpinner size="lg" message={`Loading ${getLocationDisplayName(location)} inventory...`} />
       </div>
     );
   }
@@ -247,7 +259,7 @@ function LocationPage({ location }: { location: Location }) {
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">{location} Inventory</h1>
+              <h1 className="text-3xl font-bold text-gray-800">{getLocationDisplayName(location)} Inventory</h1>
               <p className="text-gray-600">
                 {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"} in stock
               </p>

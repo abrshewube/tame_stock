@@ -4,6 +4,16 @@ import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2, X } from
 import axios from 'axios';
 import { recordSalesBatch } from '../services/saleService';
 
+// Helper function to get display name for locations
+const getLocationDisplayName = (location: string): string => {
+  const displayNames: Record<string, string> = {
+    Adama: "Adama",
+    AddisAbaba: "Pysaa Seeds",
+    Chemicals: "Pysaa Chemicals"
+  };
+  return displayNames[location] || location;
+};
+
 interface Product {
   _id: string;
   name: string;
@@ -522,8 +532,8 @@ const LocationSalesPage = () => {
                 Back
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">{location} Sales Management</h1>
-                <p className="text-gray-600">Manage sales and track inventory for {location}</p>
+                <h1 className="text-2xl font-bold text-gray-800">{getLocationDisplayName(location)} Sales Management</h1>
+                <p className="text-gray-600">Manage sales and track inventory for {getLocationDisplayName(location)}</p>
               </div>
             </div>
             <div className="flex space-x-3">

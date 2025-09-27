@@ -7,13 +7,15 @@ interface LocationCardProps {
   productCount: number;
   totalStock: number;
   onClick: () => void;
+  locationValue?: string;
 }
 
 export const LocationCard: React.FC<LocationCardProps> = ({
   name,
   productCount,
   totalStock,
-  onClick
+  onClick,
+  locationValue
 }) => {
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 group">
@@ -52,7 +54,7 @@ export const LocationCard: React.FC<LocationCardProps> = ({
           View Inventory →
         </button>
         <Link
-          to={`/sales/${name}`}
+          to={`/sales/${locationValue || name}`}
           className="block w-full text-sm text-green-600 font-medium hover:text-green-800 transition-colors"
         >
           Manage Sales →
