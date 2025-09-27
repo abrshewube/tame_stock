@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2, X, Download } from 'lucide-react';
 import axios from 'axios';
 import { recordSalesBatch } from '../services/saleService';
+import ExportSalesModal from './ExportSalesModal';
 
 // Helper function to get display name for locations
 const getLocationDisplayName = (location: string): string => {
@@ -103,6 +104,8 @@ const LocationSalesPage = () => {
   const [success, setSuccess] = useState('');
   const [showEditStockForm, setShowEditStockForm] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [allSales, setAllSales] = useState<Sale[]>([]);
 
   useEffect(() => {
     if (location) {
@@ -152,12 +155,15 @@ const LocationSalesPage = () => {
       
       // Fetch all sales for this location to get available dates
       const allSalesResponse = await axios.get(`${API_URL}/sales?location=${location}`);
-      const allSales = (allSalesResponse.data.docs || allSalesResponse.data.data || []) as Sale[];
-      console.log('All sales for location:', allSales);
+      const allSalesData = (allSalesResponse.data.docs || allSalesResponse.data.data || []) as Sale[];
+      console.log('All sales for location:', allSalesData);
+      
+      // Store all sales for use in calculations
+      setAllSales(allSalesData);
       
       // Only include dates that actually have sales
       const dates: string[] = Array.from(new Set(
-        allSales
+        allSalesData
           .filter(sale => sale.date) // Filter out any sales without dates
           .map((sale: Sale) => sale.date)
       ));
@@ -218,33 +224,35 @@ const LocationSalesPage = () => {
       setError('');
       setSuccess('');
 
-      let deletedCount = 0;
+      let totalDeletedCount = 0;
       let datesWithSales = 0;
       let datesWithoutSales = 0;
       
       for (const date of selectedDates) {
         console.log('Deleting sales for date:', date, 'location:', location);
         
-        const response = await axios.get(`${API_URL}/sales?location=${location}&date=${date}`);
-        const salesToDelete = response.data.docs || response.data.data || [];
-        
-        if (salesToDelete.length > 0) {
-          datesWithSales++;
-          for (const sale of salesToDelete) {
-            await axios.delete(`${API_URL}/sales/${sale._id}`);
-            deletedCount++;
+        try {
+          const response = await axios.delete(`${API_URL}/sales/date/${date}?location=${location}`);
+          const { deletedCount } = response.data;
+          
+          if (deletedCount > 0) {
+            datesWithSales++;
+            totalDeletedCount += deletedCount;
+          } else {
+            datesWithoutSales++;
           }
-        } else {
-          datesWithoutSales++;
+        } catch (err) {
+          console.error(`Error deleting sales for date ${date}:`, err);
+          // Continue with other dates even if one fails
         }
       }
 
       // Create success message based on what was processed
       let successMessage = '';
       if (datesWithSales > 0 && datesWithoutSales > 0) {
-        successMessage = `Successfully deleted ${deletedCount} sales from ${datesWithSales} date(s). ${datesWithoutSales} date(s) had no sales and were removed from the list.`;
+        successMessage = `Successfully deleted ${totalDeletedCount} sales from ${datesWithSales} date(s). ${datesWithoutSales} date(s) had no sales and were removed from the list.`;
       } else if (datesWithSales > 0) {
-        successMessage = `Successfully deleted ${deletedCount} sales from ${datesWithSales} date(s)!`;
+        successMessage = `Successfully deleted ${totalDeletedCount} sales from ${datesWithSales} date(s)!`;
       } else {
         successMessage = `${datesWithoutSales} date(s) had no sales and were removed from the list.`;
       }
@@ -282,17 +290,19 @@ const LocationSalesPage = () => {
       setError('');
       setSuccess('');
       
-      console.log('Deleting sales for date:', date, 'location:', location);
+      console.log('Deleting all sales for date:', date, 'location:', location);
       
-      // Get all sales for this date
-      const response = await axios.get(`${API_URL}/sales?location=${location}&date=${date}`);
-      const salesToDelete = response.data.docs || response.data.data || [];
+      // Use the new endpoint to delete all sales for the date
+      const response = await axios.delete(`${API_URL}/sales/date/${date}?location=${location}`);
       
-      console.log('Sales to delete:', salesToDelete);
+      console.log('Delete response:', response.data);
       
-      if (salesToDelete.length === 0) {
+      const { deletedCount } = response.data;
+      
+      if (deletedCount === 0) {
         // No sales found, just remove the date from available dates
         setAvailableDates(prev => prev.filter(d => d !== date));
+        setAllSales(prev => prev.filter(sale => sale.date !== date));
         setSuccess(`Date ${formatDate(date)} has been removed from the list.`);
         
         // If this was the selected date, switch to the next available date or today
@@ -310,13 +320,7 @@ const LocationSalesPage = () => {
         return;
       }
       
-      // Delete each sale
-      for (const sale of salesToDelete) {
-        console.log('Deleting sale:', sale._id);
-        await axios.delete(`${API_URL}/sales/${sale._id}`);
-      }
-      
-      setSuccess(`All sales for ${formatDate(date)} have been deleted successfully!`);
+      setSuccess(`Successfully deleted ${deletedCount} sales for ${formatDate(date)}!`);
       
       // Refresh all data
       await Promise.all([
@@ -542,12 +546,12 @@ const LocationSalesPage = () => {
   };
 
   const getTotalSalesForDate = (date: string) => {
-    const dateSales = sales.filter(sale => sale.date === date);
+    const dateSales = allSales.filter(sale => sale.date === date);
     return dateSales.reduce((sum, sale) => sum + sale.total, 0);
   };
 
   const getSalesCountForDate = (date: string) => {
-    return sales.filter(sale => sale.date === date).length;
+    return allSales.filter(sale => sale.date === date).length;
   };
 
   // console.log(sales[0].description)
@@ -581,6 +585,13 @@ const LocationSalesPage = () => {
               >
                 <Calendar className="h-5 w-5 mr-2" />
                 View History
+              </button>
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Export Excel
               </button>
               <button
                 onClick={() => setShowSaleForm(true)}
@@ -958,6 +969,14 @@ const LocationSalesPage = () => {
               </div>
             </div>
           )}
+
+          {/* Export Sales Modal */}
+          <ExportSalesModal
+            isOpen={showExportModal}
+            onClose={() => setShowExportModal(false)}
+            location={location}
+            locationDisplayName={getLocationDisplayName(location)}
+          />
         </div>
       </div>
     </div>

@@ -187,6 +187,8 @@ router.get('/', async (req, res) => {
   try {
     const { 
       date, 
+      startDate,
+      endDate,
       location, 
       search = '', 
       page = 1, 
@@ -195,9 +197,13 @@ router.get('/', async (req, res) => {
     
     const query = {};
     
-    // Date filter
+    // Date filter - support both single date and date range
     if (date) {
       query.date = date;
+    } else if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = startDate;
+      if (endDate) query.date.$lte = endDate;
     }
     console.log(location)
     
@@ -285,6 +291,66 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating sale:', error);
     res.status(500).json({ message: 'Error updating sale', error: error.message });
+  }
+});
+
+// Delete all sales for a specific date and location
+router.delete('/date/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const { location } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: 'Date parameter is required' });
+    }
+
+    if (!location) {
+      return res.status(400).json({ message: 'Location parameter is required' });
+    }
+
+    // Find all sales for the specified date and location
+    const salesToDelete = await Sale.find({ date, location });
+    
+    if (salesToDelete.length === 0) {
+      return res.json({ 
+        message: 'No sales found for the specified date and location',
+        deletedCount: 0
+      });
+    }
+
+    let deletedCount = 0;
+
+    // Process each sale
+    for (const sale of salesToDelete) {
+      // Restore stock balance
+      const product = await Product.findById(sale.productId);
+      if (product) {
+        product.balance += sale.quantity;
+        await product.save();
+      }
+
+      // Delete linked transaction
+      if (sale.transactionId) {
+        await Transaction.findByIdAndDelete(sale.transactionId);
+      }
+
+      // Delete the sale
+      await sale.deleteOne();
+      deletedCount++;
+    }
+
+    res.json({ 
+      message: `Successfully deleted ${deletedCount} sales for ${date}`,
+      deletedCount,
+      date,
+      location
+    });
+  } catch (error) {
+    console.error('Error deleting sales for date:', error);
+    res.status(500).json({ 
+      message: 'Error deleting sales for date', 
+      error: error.message 
+    });
   }
 });
 

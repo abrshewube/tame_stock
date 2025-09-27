@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Package, DollarSign, TrendingUp, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Package, DollarSign, TrendingUp, Clock, Download } from 'lucide-react';
 import axios from 'axios';
+import ExportSalesModal from './ExportSalesModal';
 
 interface Sale {
   _id: string;
@@ -33,6 +34,7 @@ const SalesHistoryPage = () => {
   const [salesForSelectedDate, setSalesForSelectedDate] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     if (location) {
@@ -67,7 +69,7 @@ const SalesHistoryPage = () => {
       const summaries: DateSummary[] = Object.keys(salesByDate).map(date => {
         const dateSales = salesByDate[date];
         const totalAmount = dateSales.reduce((sum: number, sale: Sale) => sum + sale.total, 0);
-        const products = [...new Set(dateSales.map((sale: Sale) => sale.productName))];
+        const products = [...new Set(dateSales.map((sale: Sale) => sale.productName))] as string[];
         
         return {
           date,
@@ -120,6 +122,16 @@ const SalesHistoryPage = () => {
     });
   };
 
+  // Helper function to get display name for locations
+  const getLocationDisplayName = (location: string): string => {
+    const displayNames: Record<string, string> = {
+      Adama: "Adama",
+      AddisAbaba: "Pysaa Seeds",
+      Chemicals: "Pysaa Chemicals"
+    };
+    return displayNames[location] || location;
+  };
+
   if (!location) {
     return <div>Location not found</div>;
   }
@@ -160,6 +172,13 @@ const SalesHistoryPage = () => {
                   </p>
                 </div>
               </div>
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Export Excel
+              </button>
             </div>
 
             {/* Error Message */}
@@ -234,10 +253,17 @@ const SalesHistoryPage = () => {
                 Back
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">{location} Sales History</h1>
+                <h1 className="text-2xl font-bold text-gray-800">{getLocationDisplayName(location)} Sales History</h1>
                 <p className="text-gray-600">View sales history by date</p>
               </div>
             </div>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+            >
+              <Download className="h-5 w-5 mr-2" />
+              Export Excel
+            </button>
           </div>
 
           {/* Error Message */}
@@ -352,6 +378,14 @@ const SalesHistoryPage = () => {
               </div>
             </div>
           )}
+
+          {/* Export Sales Modal */}
+          <ExportSalesModal
+            isOpen={showExportModal}
+            onClose={() => setShowExportModal(false)}
+            location={location}
+            locationDisplayName={getLocationDisplayName(location)}
+          />
         </div>
       </div>
     </div>
