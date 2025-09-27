@@ -155,7 +155,12 @@ const LocationSalesPage = () => {
       const allSales = (allSalesResponse.data.docs || allSalesResponse.data.data || []) as Sale[];
       console.log('All sales for location:', allSales);
       
-      const dates: string[] = Array.from(new Set(allSales.map((sale: Sale) => sale.date)));
+      // Only include dates that actually have sales
+      const dates: string[] = Array.from(new Set(
+        allSales
+          .filter(sale => sale.date) // Filter out any sales without dates
+          .map((sale: Sale) => sale.date)
+      ));
       dates.sort((a: string, b: string) => b.localeCompare(a));
       console.log('Available dates:', dates);
       setAvailableDates(dates);
@@ -214,19 +219,37 @@ const LocationSalesPage = () => {
       setSuccess('');
 
       let deletedCount = 0;
+      let datesWithSales = 0;
+      let datesWithoutSales = 0;
+      
       for (const date of selectedDates) {
         console.log('Deleting sales for date:', date, 'location:', location);
         
         const response = await axios.get(`${API_URL}/sales?location=${location}&date=${date}`);
         const salesToDelete = response.data.docs || response.data.data || [];
         
-        for (const sale of salesToDelete) {
-          await axios.delete(`${API_URL}/sales/${sale._id}`);
-          deletedCount++;
+        if (salesToDelete.length > 0) {
+          datesWithSales++;
+          for (const sale of salesToDelete) {
+            await axios.delete(`${API_URL}/sales/${sale._id}`);
+            deletedCount++;
+          }
+        } else {
+          datesWithoutSales++;
         }
       }
 
-      setSuccess(`Successfully deleted ${deletedCount} sales from ${selectedDates.length} date(s)!`);
+      // Create success message based on what was processed
+      let successMessage = '';
+      if (datesWithSales > 0 && datesWithoutSales > 0) {
+        successMessage = `Successfully deleted ${deletedCount} sales from ${datesWithSales} date(s). ${datesWithoutSales} date(s) had no sales and were removed from the list.`;
+      } else if (datesWithSales > 0) {
+        successMessage = `Successfully deleted ${deletedCount} sales from ${datesWithSales} date(s)!`;
+      } else {
+        successMessage = `${datesWithoutSales} date(s) had no sales and were removed from the list.`;
+      }
+      
+      setSuccess(successMessage);
       setSelectedDates([]);
 
       // Refresh all data
@@ -268,7 +291,22 @@ const LocationSalesPage = () => {
       console.log('Sales to delete:', salesToDelete);
       
       if (salesToDelete.length === 0) {
-        setError('No sales found for this date.');
+        // No sales found, just remove the date from available dates
+        setAvailableDates(prev => prev.filter(d => d !== date));
+        setSuccess(`Date ${formatDate(date)} has been removed from the list.`);
+        
+        // If this was the selected date, switch to the next available date or today
+        if (selectedDate === date) {
+          const remainingDates = availableDates.filter(d => d !== date);
+          if (remainingDates.length > 0) {
+            setSelectedDate(remainingDates[0]);
+          } else {
+            setSelectedDate(new Date().toISOString().split('T')[0]);
+          }
+        }
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(''), 3000);
         return;
       }
       
