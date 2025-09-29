@@ -748,8 +748,24 @@ const LocationSalesPage = () => {
                       </h2>
                     </div>
 
-                    <div className="text-sm text-gray-500">
-                      {sales.length} sales • Total: ETB {sales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm text-gray-500">
+                        {sales.length} sales • Total: ETB {sales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
+                      </div>
+                      <button
+                        onClick={() => setShowSaleForm(true)}
+                        className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-full transition-colors"
+                        title="Add new sale"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setShowBatchForm(true)}
+                        className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                        title="Add batch sales"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                   {sales.length === 0 ? (
@@ -812,6 +828,26 @@ const LocationSalesPage = () => {
                       <h2 className="text-lg font-semibold text-gray-800">
                         Stock In for {formatDate(selectedDate)}
                       </h2>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm text-gray-500">
+                        {stockIn.length} stock entries
+                      </div>
+                      <button
+                        onClick={() => setShowStockForm(true)}
+                        className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-full transition-colors"
+                        title="Add new stock"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setShowBatchStockForm(true)}
+                        className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-full transition-colors"
+                        title="Add batch stock"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                   {stockIn.length === 0 ? (
