@@ -166,9 +166,13 @@ const LocationSalesPage = () => {
         allSalesData
           .filter(sale => sale.date) // Filter out any sales without dates
           .map((sale: Sale) => sale.date)
-      ));
+      )).filter(date => {
+        // Double-check: only include dates that have at least one sale
+        const salesForDate = allSalesData.filter(sale => sale.date === date);
+        return salesForDate.length > 0;
+      });
       dates.sort((a: string, b: string) => b.localeCompare(a));
-      console.log('Available dates:', dates);
+      console.log('Available dates (with sales):', dates);
       setAvailableDates(dates);
       
     } catch (err) {
