@@ -87,32 +87,50 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
 
       console.log(`Exporting ${sales.length} individual sales for date range ${startDate} to ${endDate}`);
 
-      // Prepare data for Excel - each sale as a separate row
-      const excelData = sales.map((sale, index) => ({
-        'S.No': index + 1,
-        'Sale ID': sale._id,
-        'Date': formatDate(sale.date),
-        'Product Name': sale.productName,
-        'Product ID': sale.productId,
-        'Location': locationDisplayName,
-        'Quantity': sale.quantity,
-        'Unit Price (ETB)': sale.price,
-        'Total Amount (ETB)': sale.total,
-        'Description': sale.description || '',
-        'Sale Time': new Date(sale.createdAt).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }),
-        'Created At': new Date(sale.createdAt).toLocaleString('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        })
-      }));
+      // Group sales by date and product
+      const groupedData: Record<string, Record<string, { quantity: number; total: number; avgPrice: number }>> = {};
+      
+      sales.forEach(sale => {
+        if (!groupedData[sale.date]) {
+          groupedData[sale.date] = {};
+        }
+        if (!groupedData[sale.date][sale.productName]) {
+          groupedData[sale.date][sale.productName] = { quantity: 0, total: 0, avgPrice: 0 };
+        }
+        groupedData[sale.date][sale.productName].quantity += sale.quantity;
+        groupedData[sale.date][sale.productName].total += sale.total;
+      });
+
+      // Calculate average prices
+      Object.keys(groupedData).forEach(date => {
+        Object.keys(groupedData[date]).forEach(product => {
+          const data = groupedData[date][product];
+          data.avgPrice = data.quantity > 0 ? data.total / data.quantity : 0;
+        });
+      });
+
+      // Sort dates
+      const sortedDates = Object.keys(groupedData).sort((a, b) => a.localeCompare(b));
+
+      // Prepare data for Excel - one row per product per date
+      const excelData: any[] = [];
+      let rowNumber = 1;
+
+      sortedDates.forEach(date => {
+        const products = Object.keys(groupedData[date]).sort();
+        products.forEach(product => {
+          const data = groupedData[date][product];
+          excelData.push({
+            'S.No': rowNumber++,
+            'Date': formatDate(date),
+            'Product Name': product,
+            'Location': locationDisplayName,
+            'Total Quantity': data.quantity,
+            'Avg Price (ETB)': data.avgPrice.toFixed(2),
+            'Total Amount (ETB)': data.total.toFixed(2)
+          });
+        });
+      });
 
       // Calculate summary data
       const totalSales = sales.length;
@@ -125,20 +143,15 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
       // Main sales data sheet
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       
-      // Set column widths for the enhanced data
+      // Set column widths
       const columnWidths = [
         { wch: 8 },   // S.No
-        { wch: 25 },  // Sale ID
-        { wch: 12 },  // Date
-        { wch: 25 },  // Product Name
-        { wch: 25 },  // Product ID
+        { wch: 15 },  // Date
+        { wch: 30 },  // Product Name
         { wch: 15 },  // Location
-        { wch: 10 },  // Quantity
-        { wch: 15 },  // Unit Price
-        { wch: 18 },  // Total Amount
-        { wch: 30 },  // Description
-        { wch: 12 },  // Sale Time
-        { wch: 20 }   // Created At
+        { wch: 15 },  // Total Quantity
+        { wch: 15 },  // Avg Price
+        { wch: 18 }   // Total Amount
       ];
       worksheet['!cols'] = columnWidths;
 
