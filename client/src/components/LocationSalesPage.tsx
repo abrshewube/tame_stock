@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2, X, Downl
 import axios from 'axios';
 import { recordSalesBatch } from '../services/saleService';
 import ExportSalesModal from './ExportSalesModal';
+import { BatchEditSalesForm, BatchEditStockForm } from './BatchEditForms';
 
 // Helper function to get display name for locations
 const getLocationDisplayName = (location: string): string => {
@@ -106,6 +107,8 @@ const LocationSalesPage = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [allSales, setAllSales] = useState<Sale[]>([]);
+  const [showBatchEditSalesForm, setShowBatchEditSalesForm] = useState(false);
+  const [showBatchEditStockForm, setShowBatchEditStockForm] = useState(false);
 
   useEffect(() => {
     if (location) {
@@ -764,9 +767,9 @@ const LocationSalesPage = () => {
                         <Plus className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => setShowBatchForm(true)}
+                        onClick={() => setShowBatchEditSalesForm(true)}
                         className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
-                        title="Add batch sales"
+                        title="Edit all sales for this date"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
@@ -846,9 +849,9 @@ const LocationSalesPage = () => {
                         <Plus className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => setShowBatchStockForm(true)}
+                        onClick={() => setShowBatchEditStockForm(true)}
                         className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-full transition-colors"
-                        title="Add batch stock"
+                        title="Edit all stock for this date"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
@@ -1017,6 +1020,54 @@ const LocationSalesPage = () => {
             location={location}
             locationDisplayName={getLocationDisplayName(location)}
           />
+
+          {/* Batch Edit Sales Modal */}
+          {showBatchEditSalesForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <BatchEditSalesForm
+                  sales={sales}
+                  products={products}
+                  defaultDate={selectedDate}
+                  locationName={location}
+                  onSuccess={async () => {
+                    setShowBatchEditSalesForm(false);
+                    await Promise.all([
+                      fetchProducts(),
+                      fetchAvailableDates(),
+                      fetchSales(),
+                      fetchStockIn()
+                    ]);
+                  }}
+                  onCancel={() => setShowBatchEditSalesForm(false)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Batch Edit Stock Modal */}
+          {showBatchEditStockForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <BatchEditStockForm
+                  stockEntries={stockIn}
+                  products={products}
+                  defaultDate={selectedDate}
+                  locationName={location}
+                  onSuccess={async () => {
+                    setShowBatchEditStockForm(false);
+                    await Promise.all([
+                      fetchProducts(),
+                      fetchAvailableDates(),
+                      fetchSales(),
+                      fetchStockIn()
+                    ]);
+                  }}
+                  onCancel={() => setShowBatchEditStockForm(false)}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
