@@ -236,10 +236,18 @@ const LocationSalesPage = () => {
       let datesWithoutSales = 0;
       
       for (const date of selectedDates) {
-        console.log('Deleting sales for date:', date, 'location:', location);
+        // Ensure date is in YYYY-MM-DD format
+        let normalizedDate = date;
+        if (date.includes('T')) {
+          normalizedDate = date.split('T')[0];
+        }
+        
+        console.log('Deleting sales for date:', normalizedDate, 'location:', location);
         
         try {
-          const response = await axios.delete(`${API_URL}/sales/date/${date}?location=${location}`);
+          const response = await axios.delete(`${API_URL}/sales/date/${encodeURIComponent(normalizedDate)}`, {
+            params: { location }
+          });
           const { deletedCount } = response.data;
           
           if (deletedCount > 0) {
@@ -300,12 +308,20 @@ const LocationSalesPage = () => {
       setError('');
       setSuccess('');
       
+      // Ensure date is in YYYY-MM-DD format
+      let normalizedDate = date;
+      if (date.includes('T')) {
+        normalizedDate = date.split('T')[0];
+      }
+      
       console.log('=== FRONTEND DELETE REQUEST ===');
-      console.log('Deleting all sales for date:', date, 'location:', location);
+      console.log('Original date:', date);
+      console.log('Normalized date:', normalizedDate);
+      console.log('Location:', location);
       console.log('Expected sales count:', salesCount);
       
       // Use the new endpoint to delete all sales for the date
-      const response = await axios.delete(`${API_URL}/sales/date/${date}`, {
+      const response = await axios.delete(`${API_URL}/sales/date/${encodeURIComponent(normalizedDate)}`, {
         params: { location }
       });
       

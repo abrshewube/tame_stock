@@ -297,11 +297,22 @@ router.put('/:id', async (req, res) => {
 // Delete all sales for a specific date and location
 router.delete('/date/:date', async (req, res) => {
   try {
-    const { date } = req.params;
+    let { date } = req.params;
     const { location } = req.query;
 
     console.log('=== DELETE DATE REQUEST ===');
-    console.log('Date:', date);
+    console.log('Raw Date param:', date);
+    console.log('Date type:', typeof date);
+    
+    // Normalize the date to YYYY-MM-DD format
+    if (date.includes('GMT') || date.includes('00:00:00')) {
+      // If it's a full date string, parse it
+      const parsedDate = new Date(date);
+      date = parsedDate.toISOString().split('T')[0];
+      console.log('Normalized date to:', date);
+    }
+    
+    console.log('Final Date:', date);
     console.log('Location:', location);
 
     if (!date) {
