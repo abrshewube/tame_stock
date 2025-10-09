@@ -238,14 +238,17 @@ const LocationSalesPage = () => {
       for (const date of selectedDates) {
         // Ensure date is in YYYY-MM-DD format
         let normalizedDate = date;
-        if (date.includes('T')) {
-          normalizedDate = date.split('T')[0];
+        if (typeof date === 'string') {
+          if (date.includes('T')) {
+            normalizedDate = date.split('T')[0];
+          }
+          normalizedDate = normalizedDate.trim();
         }
         
         console.log('Deleting sales for date:', normalizedDate, 'location:', location);
         
         try {
-          const response = await axios.delete(`${API_URL}/sales/date/${encodeURIComponent(normalizedDate)}`, {
+          const response = await axios.delete(`${API_URL}/sales/date/${normalizedDate}`, {
             params: { location }
           });
           const { deletedCount } = response.data;
@@ -308,20 +311,27 @@ const LocationSalesPage = () => {
       setError('');
       setSuccess('');
       
-      // Ensure date is in YYYY-MM-DD format
+      // Ensure date is in YYYY-MM-DD format (should already be from database)
       let normalizedDate = date;
-      if (date.includes('T')) {
-        normalizedDate = date.split('T')[0];
+      if (typeof date === 'string') {
+        // If it contains 'T', it's an ISO string, extract the date part
+        if (date.includes('T')) {
+          normalizedDate = date.split('T')[0];
+        }
+        // Trim any whitespace
+        normalizedDate = normalizedDate.trim();
       }
       
       console.log('=== FRONTEND DELETE REQUEST ===');
       console.log('Original date:', date);
+      console.log('Date type:', typeof date);
       console.log('Normalized date:', normalizedDate);
       console.log('Location:', location);
       console.log('Expected sales count:', salesCount);
       
       // Use the new endpoint to delete all sales for the date
-      const response = await axios.delete(`${API_URL}/sales/date/${encodeURIComponent(normalizedDate)}`, {
+      // Don't encode the date if it's already in YYYY-MM-DD format
+      const response = await axios.delete(`${API_URL}/sales/date/${normalizedDate}`, {
         params: { location }
       });
       

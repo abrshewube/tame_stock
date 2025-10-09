@@ -304,12 +304,30 @@ router.delete('/date/:date', async (req, res) => {
     console.log('Raw Date param:', date);
     console.log('Date type:', typeof date);
     
+    // Decode URL-encoded date
+    date = decodeURIComponent(date);
+    console.log('Decoded date:', date);
+    
     // Normalize the date to YYYY-MM-DD format
-    if (date.includes('GMT') || date.includes('00:00:00')) {
-      // If it's a full date string, parse it
-      const parsedDate = new Date(date);
-      date = parsedDate.toISOString().split('T')[0];
-      console.log('Normalized date to:', date);
+    // Check if it's already in YYYY-MM-DD format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      console.log('Date is not in YYYY-MM-DD format, attempting to parse...');
+      try {
+        // Try to parse as a date string
+        const parsedDate = new Date(date);
+        if (isNaN(parsedDate.getTime())) {
+          throw new Error('Invalid date');
+        }
+        date = parsedDate.toISOString().split('T')[0];
+        console.log('Normalized date to:', date);
+      } catch (parseError) {
+        console.error('Failed to parse date:', parseError);
+        return res.status(400).json({ 
+          message: 'Invalid date format. Please use YYYY-MM-DD format.',
+          receivedDate: date
+        });
+      }
     }
     
     console.log('Final Date:', date);
