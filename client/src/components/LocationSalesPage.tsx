@@ -288,7 +288,10 @@ const LocationSalesPage = () => {
   };
 
   const handleDeleteDate = async (date: string) => {
-    if (!window.confirm(`Are you sure you want to delete all sales for ${formatDate(date)}? This action cannot be undone.`)) {
+    const salesCount = getSalesCountForDate(date);
+    const totalAmount = getTotalSalesForDate(date);
+    
+    if (!window.confirm(`Are you sure you want to delete all ${salesCount} sales (Total: ETB ${totalAmount.toFixed(2)}) for ${formatDate(date)}? This action cannot be undone.`)) {
       return;
     }
 
@@ -297,14 +300,23 @@ const LocationSalesPage = () => {
       setError('');
       setSuccess('');
       
+      console.log('=== FRONTEND DELETE REQUEST ===');
       console.log('Deleting all sales for date:', date, 'location:', location);
+      console.log('Expected sales count:', salesCount);
       
       // Use the new endpoint to delete all sales for the date
-      const response = await axios.delete(`${API_URL}/sales/date/${date}?location=${location}`);
+      const response = await axios.delete(`${API_URL}/sales/date/${date}`, {
+        params: { location }
+      });
       
       console.log('Delete response:', response.data);
       
-      const { deletedCount } = response.data;
+      const { deletedCount, errors } = response.data;
+      
+      if (errors && errors.length > 0) {
+        console.error('Some sales failed to delete:', errors);
+        setError(`Deleted ${deletedCount} sales, but ${errors.length} failed. Check console for details.`);
+      }
       
       if (deletedCount === 0) {
         // No sales found, just remove the date from available dates
@@ -327,9 +339,23 @@ const LocationSalesPage = () => {
         return;
       }
       
-      setSuccess(`Successfully deleted ${deletedCount} sales for ${formatDate(date)}!`);
+      setSuccess(`Successfully deleted ${deletedCount} sales for ${formatDate(date)}! Stock balances have been restored.`);
       
-      // Refresh all data
+      // Immediately update local state
+      setAvailableDates(prev => prev.filter(d => d !== date));
+      setAllSales(prev => prev.filter(sale => sale.date !== date));
+      
+      // If this was the selected date, switch to the next available date
+      if (selectedDate === date) {
+        const remainingDates = availableDates.filter(d => d !== date);
+        if (remainingDates.length > 0) {
+          setSelectedDate(remainingDates[0]);
+        } else {
+          setSelectedDate(new Date().toISOString().split('T')[0]);
+        }
+      }
+      
+      // Refresh all data from server
       await Promise.all([
         fetchProducts(),
         fetchAvailableDates(),
@@ -337,12 +363,13 @@ const LocationSalesPage = () => {
         fetchStockIn()
       ]);
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000);
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(''), 5000);
       
     } catch (err: any) {
       console.error('Error deleting sales for date:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to delete sales for this date. Please try again.';
+      console.error('Error details:', err.response?.data);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete sales for this date. Please try again.';
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);

@@ -300,6 +300,10 @@ router.delete('/date/:date', async (req, res) => {
     const { date } = req.params;
     const { location } = req.query;
 
+    console.log('=== DELETE DATE REQUEST ===');
+    console.log('Date:', date);
+    console.log('Location:', location);
+
     if (!date) {
       return res.status(400).json({ message: 'Date parameter is required' });
     }
@@ -311,39 +315,60 @@ router.delete('/date/:date', async (req, res) => {
     // Find all sales for the specified date and location
     const salesToDelete = await Sale.find({ date, location });
     
+    console.log(`Found ${salesToDelete.length} sales to delete for date ${date} and location ${location}`);
+    
     if (salesToDelete.length === 0) {
+      console.log('No sales found, returning 0 count');
       return res.json({ 
         message: 'No sales found for the specified date and location',
-        deletedCount: 0
+        deletedCount: 0,
+        date,
+        location
       });
     }
 
     let deletedCount = 0;
+    const errors = [];
 
     // Process each sale
     for (const sale of salesToDelete) {
-      // Restore stock balance
-      const product = await Product.findById(sale.productId);
-      if (product) {
-        product.balance += sale.quantity;
-        await product.save();
-      }
+      try {
+        console.log(`Processing sale ${sale._id} for product ${sale.productName}`);
+        
+        // Restore stock balance
+        const product = await Product.findById(sale.productId);
+        if (product) {
+          product.balance += sale.quantity;
+          await product.save();
+          console.log(`Restored ${sale.quantity} units to ${product.name}`);
+        } else {
+          console.warn(`Product ${sale.productId} not found for sale ${sale._id}`);
+        }
 
-      // Delete linked transaction
-      if (sale.transactionId) {
-        await Transaction.findByIdAndDelete(sale.transactionId);
-      }
+        // Delete linked transaction
+        if (sale.transactionId) {
+          await Transaction.findByIdAndDelete(sale.transactionId);
+          console.log(`Deleted transaction ${sale.transactionId}`);
+        }
 
-      // Delete the sale
-      await sale.deleteOne();
-      deletedCount++;
+        // Delete the sale
+        await Sale.findByIdAndDelete(sale._id);
+        deletedCount++;
+        console.log(`Deleted sale ${sale._id}`);
+      } catch (saleError) {
+        console.error(`Error deleting sale ${sale._id}:`, saleError);
+        errors.push({ saleId: sale._id, error: saleError.message });
+      }
     }
+
+    console.log(`Successfully deleted ${deletedCount} out of ${salesToDelete.length} sales`);
 
     res.json({ 
       message: `Successfully deleted ${deletedCount} sales for ${date}`,
       deletedCount,
       date,
-      location
+      location,
+      errors: errors.length > 0 ? errors : undefined
     });
   } catch (error) {
     console.error('Error deleting sales for date:', error);
