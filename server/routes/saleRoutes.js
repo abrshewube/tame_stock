@@ -234,67 +234,9 @@ router.get('/', async (req, res) => {
     });
   }
 });
-// Update a sale
-router.put('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { productId, productName, date, location, quantity, price } = req.body;
-
-    const sale = await Sale.findById(id);
-    if (!sale) {
-      return res.status(404).json({ message: 'Sale not found' });
-    }
-
-    const product = await Product.findById(productId || sale.productId);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    // Revert old sale quantity back to product balance
-    product.balance += sale.quantity;
-
-    // Validate new quantity/price
-    if (quantity <= 0 || price < 0) {
-      return res.status(400).json({ message: 'Invalid quantity or price' });
-    }
-
-    if (product.balance < quantity) {
-      return res.status(400).json({ message: 'Insufficient stock' });
-    }
-
-    // Deduct new quantity
-    product.balance -= quantity;
-    await product.save();
-
-    // Update sale
-    sale.productId = productId || sale.productId;
-    sale.productName = productName || sale.productName;
-    sale.date = date || sale.date;
-    sale.location = location || sale.location;
-    sale.quantity = quantity;
-    sale.price = price;
-    sale.total = quantity * price;
-    await sale.save();
-
-    // Update linked transaction
-    if (sale.transactionId) {
-      await Transaction.findByIdAndUpdate(sale.transactionId, {
-        productId: sale.productId,
-        type: 'out',
-        quantity: sale.quantity,
-        date: sale.date,
-        description: `Updated sale of ${sale.quantity} units at ${sale.price} ETB each`
-      });
-    }
-
-    res.json({ message: 'Sale updated successfully', sale });
-  } catch (error) {
-    console.error('Error updating sale:', error);
-    res.status(500).json({ message: 'Error updating sale', error: error.message });
-  }
-});
 
 // Delete all sales for a specific date and location
+// IMPORTANT: This route must come BEFORE any /:id routes to avoid conflicts
 router.delete('/date/:date', async (req, res) => {
   try {
     let { date } = req.params;
@@ -405,6 +347,66 @@ router.delete('/date/:date', async (req, res) => {
       message: 'Error deleting sales for date', 
       error: error.message 
     });
+  }
+});
+
+// Update a sale
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { productId, productName, date, location, quantity, price } = req.body;
+
+    const sale = await Sale.findById(id);
+    if (!sale) {
+      return res.status(404).json({ message: 'Sale not found' });
+    }
+
+    const product = await Product.findById(productId || sale.productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Revert old sale quantity back to product balance
+    product.balance += sale.quantity;
+
+    // Validate new quantity/price
+    if (quantity <= 0 || price < 0) {
+      return res.status(400).json({ message: 'Invalid quantity or price' });
+    }
+
+    if (product.balance < quantity) {
+      return res.status(400).json({ message: 'Insufficient stock' });
+    }
+
+    // Deduct new quantity
+    product.balance -= quantity;
+    await product.save();
+
+    // Update sale
+    sale.productId = productId || sale.productId;
+    sale.productName = productName || sale.productName;
+    sale.date = date || sale.date;
+    sale.location = location || sale.location;
+    sale.quantity = quantity;
+    sale.price = price;
+    sale.total = quantity * price;
+    await sale.save();
+
+    // Update linked transaction
+    if (sale.transactionId) {
+      await Transaction.findByIdAndUpdate(sale.transactionId, {
+        productId: sale.productId,
+        type: 'out',
+        quantity: sale.quantity,
+        date: sale.date,
+        description: `Updated sale of ${sale.quantity} units at ${sale.price} ETB each`
+      });
+    }
+
+    res.json({ message: 'Sale updated successfully', sale });
+  } catch (error) {
+    console.error('Error updating sale:', error);
+    res.status(500).json({ message: 'Error updating sale', error: error.message });
   }
 });
 
