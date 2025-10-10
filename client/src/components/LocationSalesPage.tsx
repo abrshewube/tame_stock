@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2, X, Download, TrendingUp, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Package, Edit2, Trash2, X, Download, TrendingUp, ShoppingCart } from 'lucide-react';
 import axios from 'axios';
 import { recordSalesBatch } from '../services/saleService';
 import ExportSalesModal from './ExportSalesModal';
@@ -122,10 +122,32 @@ const LocationSalesPage = () => {
 
   useEffect(() => {
     if (location && selectedDate) {
-      fetchSales();
+      // Update sales from allSales instead of making API call
+      if (allSales.length > 0) {
+        const salesData = allSales.filter(sale => 
+          sale.date === selectedDate && 
+          sale._id && 
+          sale.quantity > 0
+        );
+        console.log('Sales for selected date:', salesData);
+        setSales(salesData);
+      }
       fetchStockIn();
     }
-  }, [location, selectedDate]);
+  }, [location, selectedDate, allSales]);
+
+  // Reset to page 1 if current page is beyond total pages after filtering
+  useEffect(() => {
+    const validDates = availableDates.filter(date => {
+      const count = getSalesCountForDate(date);
+      const total = getTotalSalesForDate(date);
+      return count > 0 && total > 0;
+    });
+    const maxPages = Math.ceil(validDates.length / itemsPerPage);
+    if (currentPage > maxPages && maxPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [availableDates, allSales, currentPage]);
 
   const fetchProducts = async () => {
     try {
@@ -142,12 +164,23 @@ const LocationSalesPage = () => {
     try {
       console.log('Fetching sales for location:', location, 'date:', selectedDate);
       
-      // Fetch sales for the selected date
-      const response = await axios.get(`${API_URL}/sales?location=${location}&date=${selectedDate}`);
-      console.log("selected data",response.data)
-      const salesData = response.data.docs || response.data.data || [];
-      console.log('Sales data for selected date:', salesData);
-      setSales(salesData);
+      // Use allSales data if available (more reliable and faster)
+      if (allSales.length > 0) {
+        const salesData = allSales.filter(sale => 
+          sale.date === selectedDate && 
+          sale._id && 
+          sale.quantity > 0
+        );
+        console.log('Sales data for selected date (from allSales):', salesData);
+        setSales(salesData);
+      } else {
+        // Fallback to API call if allSales is empty
+        const response = await axios.get(`${API_URL}/sales?location=${location}&date=${selectedDate}`);
+        console.log("selected data",response.data)
+        const salesData = response.data.docs || response.data.data || [];
+        console.log('Sales data for selected date (from API):', salesData);
+        setSales(salesData);
+      }
       
     } catch (err) {
       console.error('Error fetching sales:', err);
@@ -159,26 +192,41 @@ const LocationSalesPage = () => {
     try {
       console.log('Fetching all sales for location:', location);
       
-      // Fetch all sales for this location to get available dates
-      const allSalesResponse = await axios.get(`${API_URL}/sales?location=${location}`);
+      // Fetch all sales for this location with a high limit to get all records
+      const allSalesResponse = await axios.get(`${API_URL}/sales`, {
+        params: {
+          location: location,
+          limit: 10000 // Get all sales
+        }
+      });
       const allSalesData = (allSalesResponse.data.docs || allSalesResponse.data.data || []) as Sale[];
       console.log('All sales for location:', allSalesData);
+      console.log('Total sales fetched:', allSalesData.length);
       
       // Store all sales for use in calculations
       setAllSales(allSalesData);
       
-      // Only include dates that actually have sales
-      const dates: string[] = Array.from(new Set(
-        allSalesData
-          .filter(sale => sale.date) // Filter out any sales without dates
-          .map((sale: Sale) => sale.date)
-      )).filter(date => {
-        // Double-check: only include dates that have at least one sale
-        const salesForDate = allSalesData.filter(sale => sale.date === date);
-        return salesForDate.length > 0;
+      // Group sales by date - only include VALID sales
+      const salesByDate: { [key: string]: { count: number; total: number } } = {};
+      allSalesData.forEach(sale => {
+        // Only include sales with valid data
+        if (sale.date && sale._id && sale.quantity > 0 && (sale.total > 0 || (sale.quantity * sale.price) > 0)) {
+          if (!salesByDate[sale.date]) {
+            salesByDate[sale.date] = { count: 0, total: 0 };
+          }
+          salesByDate[sale.date].count += 1;
+          salesByDate[sale.date].total += sale.total;
+        }
       });
+      
+      // Only include dates that have at least 1 VALID sale with total > 0
+      const dates: string[] = Object.keys(salesByDate).filter(date => 
+        salesByDate[date].count > 0 && salesByDate[date].total > 0
+      );
       dates.sort((a: string, b: string) => b.localeCompare(a));
-      console.log('Available dates (with sales):', dates);
+      
+      console.log('Sales by date:', salesByDate);
+      console.log('Available dates (with valid sales):', dates);
       setAvailableDates(dates);
       
     } catch (err) {
@@ -211,10 +259,16 @@ const LocationSalesPage = () => {
   };
 
   const handleSelectAllDates = () => {
-    if (selectedDates.length === availableDates.length) {
+    // Use validAvailableDates (filtered dates with actual valid sales)
+    const validDates = availableDates.filter(date => {
+      const count = getSalesCountForDate(date);
+      const total = getTotalSalesForDate(date);
+      return count > 0 && total > 0;
+    });
+    if (selectedDates.length === validDates.length) {
       setSelectedDates([]);
     } else {
-      setSelectedDates([...availableDates]);
+      setSelectedDates([...validDates]);
     }
   };
 
@@ -285,7 +339,6 @@ const LocationSalesPage = () => {
       await Promise.all([
         fetchProducts(),
         fetchAvailableDates(),
-        fetchSales(),
         fetchStockIn()
       ]);
 
@@ -347,30 +400,7 @@ const LocationSalesPage = () => {
         setError(`Deleted ${deletedCount} sales, but ${errors.length} failed. Check console for details.`);
       }
       
-      if (deletedCount === 0) {
-        // No sales found, just remove the date from available dates
-        setAvailableDates(prev => prev.filter(d => d !== date));
-        setAllSales(prev => prev.filter(sale => sale.date !== date));
-        setSuccess(`Date ${formatDate(date)} has been removed from the list.`);
-        
-        // If this was the selected date, switch to the next available date or today
-        if (selectedDate === date) {
-          const remainingDates = availableDates.filter(d => d !== date);
-          if (remainingDates.length > 0) {
-            setSelectedDate(remainingDates[0]);
-          } else {
-            setSelectedDate(new Date().toISOString().split('T')[0]);
-          }
-        }
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(''), 3000);
-        return;
-      }
-      
-      setSuccess(`Successfully deleted ${deletedCount} sales for ${formatDate(date)}! Stock balances have been restored.`);
-      
-      // Immediately update local state
+      // Immediately update local state - remove date from list regardless of deletedCount
       setAvailableDates(prev => prev.filter(d => d !== date));
       setAllSales(prev => prev.filter(sale => sale.date !== date));
       
@@ -384,11 +414,17 @@ const LocationSalesPage = () => {
         }
       }
       
+      // Show appropriate success message
+      if (deletedCount === 0) {
+        setSuccess(`Date ${formatDate(date)} has been removed from the list.`);
+      } else {
+        setSuccess(`Successfully deleted ${deletedCount} sales for ${formatDate(date)}! Stock balances have been restored.`);
+      }
+      
       // Refresh all data from server
       await Promise.all([
         fetchProducts(),
         fetchAvailableDates(),
-        fetchSales(),
         fetchStockIn()
       ]);
       
@@ -428,7 +464,6 @@ const LocationSalesPage = () => {
       await Promise.all([
         fetchProducts(),
         fetchAvailableDates(),
-        fetchSales(),
         fetchStockIn()
       ]);
       
@@ -487,13 +522,16 @@ const LocationSalesPage = () => {
       console.log('Deleting sale:', saleId);
       await axios.delete(`${API_URL}/sales/${saleId}`);
       
+      // Remove the sale from local state immediately
+      setAllSales(prev => prev.filter(s => s._id !== saleId));
+      setSales(prev => prev.filter(s => s._id !== saleId));
+      
       setSuccess('Sale deleted successfully!');
       
-      // Refresh all data
+      // Refresh all data from server to ensure consistency
       await Promise.all([
         fetchProducts(),
         fetchAvailableDates(),
-        fetchSales(),
         fetchStockIn()
       ]);
       
@@ -580,7 +618,6 @@ const LocationSalesPage = () => {
       await Promise.all([
         fetchProducts(),
         fetchAvailableDates(),
-        fetchSales(),
         fetchStockIn()
       ]);
       
@@ -609,19 +646,58 @@ const LocationSalesPage = () => {
   };
 
   const getTotalSalesForDate = (date: string) => {
-    const dateSales = allSales.filter(sale => sale.date === date);
+    // Only include VALID sales with proper data
+    const dateSales = allSales.filter(sale => 
+      sale.date === date && 
+      sale._id && 
+      sale.quantity > 0 && 
+      (sale.total > 0 || (sale.quantity * sale.price) > 0)
+    );
     return dateSales.reduce((sum, sale) => sum + sale.total, 0);
   };
 
   const getSalesCountForDate = (date: string) => {
-    return allSales.filter(sale => sale.date === date).length;
+    // Only count sales with valid _id, quantity > 0, and total > 0
+    return allSales.filter(sale => 
+      sale.date === date && 
+      sale._id && 
+      sale.quantity > 0 && 
+      (sale.total > 0 || (sale.quantity * sale.price) > 0)
+    ).length;
   };
 
-  // Pagination logic
-  const totalPages = Math.ceil(availableDates.length / itemsPerPage);
+  const getDateDescription = (date: string) => {
+    // Get the first sale's description for this date (if any)
+    const dateSales = allSales.filter(sale => sale.date === date && sale.description);
+    if (dateSales.length > 0) {
+      // Return the most common description for this date
+      const descriptions = dateSales.map(s => s.description).filter(Boolean);
+      if (descriptions.length > 0) {
+        // Find the most frequent description
+        const descCounts: { [key: string]: number } = {};
+        descriptions.forEach(desc => {
+          if (desc) descCounts[desc] = (descCounts[desc] || 0) + 1;
+        });
+        const mostCommon = Object.entries(descCounts).sort((a, b) => b[1] - a[1])[0];
+        return mostCommon ? mostCommon[0] : '';
+      }
+    }
+    return '';
+  };
+
+  // Filter out dates with no VALID sales (must have sales with amount > 0) BEFORE pagination
+  const validAvailableDates = availableDates.filter(date => {
+    const count = getSalesCountForDate(date);
+    const total = getTotalSalesForDate(date);
+    // Only include dates with sales that have valid count and total > 0
+    return count > 0 && total > 0;
+  });
+
+  // Pagination logic using validAvailableDates
+  const totalPages = Math.ceil(validAvailableDates.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedDates = availableDates.slice(startIndex, endIndex);
+  const paginatedDates = validAvailableDates.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -749,13 +825,13 @@ const LocationSalesPage = () => {
                       Select date
                     </p>
                   </div>
-                  {availableDates.length > 0 && (
+                  {validAvailableDates.length > 0 && (
                     <div className="flex flex-col items-end space-y-1">
                       <button
                         onClick={handleSelectAllDates}
                         className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                       >
-                        {selectedDates.length === availableDates.length ? 'Unselect' : 'Select All'}
+                        {selectedDates.length === validAvailableDates.length ? 'Unselect' : 'Select All'}
                       </button>
                       {selectedDates.length > 0 && (
                         <button
@@ -769,12 +845,15 @@ const LocationSalesPage = () => {
                     </div>
                   )}
                 </div>
-                {availableDates.length === 0 ? (
+                {validAvailableDates.length === 0 ? (
                   <div className="text-center py-8">
                     <div className="inline-flex p-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl mb-3">
                       <Calendar className="h-8 w-8 text-gray-400" />
                     </div>
                     <p className="text-sm font-medium text-gray-600">No sales recorded yet</p>
+                    {availableDates.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-2">Found {availableDates.length} date(s) with no valid sales</p>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -782,6 +861,15 @@ const LocationSalesPage = () => {
                       {paginatedDates.map((date) => {
                       const isSelected = selectedDates.includes(date);
                       const isActive = selectedDate === date;
+                      const salesCount = getSalesCountForDate(date);
+                      const totalAmount = getTotalSalesForDate(date);
+                      const dateDesc = getDateDescription(date);
+                      
+                      // Skip dates with no valid sales or 0 total
+                      if (salesCount === 0 || totalAmount === 0) {
+                        console.log(`Skipping date ${date} - count: ${salesCount}, total: ${totalAmount}`);
+                        return null;
+                      }
                       
                       return (
                         <div
@@ -822,15 +910,22 @@ const LocationSalesPage = () => {
                                       : 'text-gray-600'
                                   }`} />
                                 </div>
-                                <span className={`font-semibold text-xs ${
-                              isActive 
-                                ? 'text-blue-700' 
-                                : isSelected 
-                                ? 'text-green-700' 
-                                : 'text-gray-800'
-                            }`}>
-                              {formatDate(date)}
-                            </span>
+                                <div className="flex-1">
+                                  <div className={`font-semibold text-xs ${
+                                    isActive 
+                                      ? 'text-blue-700' 
+                                      : isSelected 
+                                      ? 'text-green-700' 
+                                      : 'text-gray-800'
+                                  }`}>
+                                    {formatDate(date)}
+                                  </div>
+                                  {dateDesc && (
+                                    <div className="text-xs text-gray-500 italic mt-0.5 line-clamp-1">
+                                      {dateDesc}
+                                    </div>
+                                  )}
+                                </div>
                           </div>
                             <button
                               onClick={(e) => {
@@ -848,12 +943,12 @@ const LocationSalesPage = () => {
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${
                                 isActive ? 'bg-blue-200 text-blue-700' : 'bg-gray-100 text-gray-600'
                               }`}>
-                                {getSalesCountForDate(date)} sales
+                                {salesCount} {salesCount === 1 ? 'sale' : 'sales'}
                               </span>
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${
                                 isActive ? 'bg-green-200 text-green-700' : 'bg-gray-100 text-gray-600'
                               }`}>
-                                {getTotalSalesForDate(date).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
+                                {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
                               </span>
                             </div>
                           </div>
