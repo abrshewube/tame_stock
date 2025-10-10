@@ -18,47 +18,63 @@ export const LocationCard: React.FC<LocationCardProps> = ({
   locationValue
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 group">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-            <MapPin className="h-6 w-6 text-blue-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-800">{name}</h3>
-        </div>
-      </div>
+    <div className="relative bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-2xl transition-all duration-300 group overflow-hidden">
+      {/* Gradient Background Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Package className="h-4 w-4 text-gray-500" />
-            <span className="text-sm text-gray-600">Products</span>
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all">
+              <MapPin className="h-6 w-6 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{name}</h3>
           </div>
-          <span className="font-semibold text-gray-800">{productCount}</span>
         </div>
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4 text-gray-500" />
-            <span className="text-sm text-gray-600">Total Stock</span>
+        {/* Stats */}
+        <div className="space-y-4 mb-6">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg group-hover:bg-white transition-colors">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Package className="h-4 w-4 text-blue-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-600">Products</span>
+            </div>
+            <span className="text-lg font-bold text-gray-800">{productCount}</span>
           </div>
-          <span className="font-semibold text-gray-800">{totalStock.toLocaleString()}</span>
+          
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg group-hover:bg-white transition-colors">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-600">Total Stock</span>
+            </div>
+            <span className="text-lg font-bold text-gray-800">{totalStock.toLocaleString()}</span>
+          </div>
         </div>
-      </div>
-      
-      <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-        <button
-          onClick={onClick}
-          className="w-full text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors"
-        >
-          View Inventory →
-        </button>
-        <Link
-          to={`/sales/${locationValue || name}`}
-          className="block w-full text-sm text-green-600 font-medium hover:text-green-800 transition-colors"
-        >
-          Manage Sales →
-        </Link>
+        
+        {/* Action Buttons */}
+        <div className="space-y-2">
+          <button
+            onClick={onClick}
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transform hover:scale-105 transition-all shadow-md hover:shadow-lg flex items-center justify-center space-x-2"
+          >
+            <Package className="h-4 w-4" />
+            <span>View Inventory</span>
+          </button>
+          <Link
+            to={`/sales/${locationValue || name}`}
+            className="block w-full py-2.5 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transform hover:scale-105 transition-all shadow-md hover:shadow-lg text-center"
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <ShoppingCart className="h-4 w-4" />
+              <span>Manage Sales</span>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );

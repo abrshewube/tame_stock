@@ -231,10 +231,10 @@ const SalesHistory = () => {
                           {sale.quantity}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                          {sale.price.toFixed(2)}
+                          {sale.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                          {(sale.total || sale.quantity * sale.price).toFixed(2)}
+                          {(sale.total || sale.quantity * sale.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>
                     ))}

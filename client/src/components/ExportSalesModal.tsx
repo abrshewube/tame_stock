@@ -16,11 +16,22 @@ interface Sale {
   createdAt: string;
 }
 
+interface Transaction {
+  _id: string;
+  productId: string;
+  productName: string;
+  type: 'in' | 'out';
+  quantity: number;
+  date: string;
+  description?: string;
+}
+
 interface ExportSalesModalProps {
   isOpen: boolean;
   onClose: () => void;
   location: string;
   locationDisplayName: string;
+  singleDate?: string; // Optional: if provided, export only this date
 }
 
 const API_URL = 'https://tame-stock.onrender.com/api';
@@ -29,7 +40,8 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
   isOpen,
   onClose,
   location,
-  locationDisplayName
+  locationDisplayName,
+  singleDate
 }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -63,7 +75,38 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
     }
   };
 
+  const fetchStockInForDate = async (date: string): Promise<Record<string, number>> => {
+    try {
+      const response = await axios.get(`${API_URL}/products/transactions`, {
+        params: {
+          location: location,
+          date: date,
+          type: 'in'
+        }
+      });
+      const transactions: Transaction[] = response.data.data || [];
+      // Sum up stock-in by productName
+      const stockByProduct: Record<string, number> = {};
+      transactions.forEach(txn => {
+        if (!stockByProduct[txn.productName]) {
+          stockByProduct[txn.productName] = 0;
+        }
+        stockByProduct[txn.productName] += txn.quantity;
+      });
+      return stockByProduct;
+    } catch (err) {
+      console.error('Error fetching stock-in for date:', err);
+      return {};
+    }
+  };
+
   const exportToExcel = async () => {
+    // If singleDate is provided, export only that date
+    if (singleDate) {
+      await exportSingleDate(singleDate);
+      return;
+    }
+
     if (!startDate || !endDate) {
       setError('Please select both start and end dates');
       return;
@@ -112,48 +155,57 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
       // Sort dates
       const sortedDates = Object.keys(groupedData).sort((a, b) => a.localeCompare(b));
 
-      // Prepare data for Excel - one row per product per date
-      const excelData: any[] = [];
-      let rowNumber = 1;
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
 
-      sortedDates.forEach(date => {
+      // Create a sheet for each date
+      for (const date of sortedDates) {
+        const stockInData = await fetchStockInForDate(date);
         const products = Object.keys(groupedData[date]).sort();
-        products.forEach(product => {
-          const data = groupedData[date][product];
-          excelData.push({
-            'S.No': rowNumber++,
-            'Date': formatDate(date),
-            'Product Name': product,
-            'Location': locationDisplayName,
-            'Total Quantity': data.quantity,
-            'Avg Price (ETB)': data.avgPrice.toFixed(2),
-            'Total Amount (ETB)': data.total.toFixed(2)
-          });
+        
+        // Header rows
+        const exportDateTime = new Date();
+        const sheetData: any[][] = [
+          ['Export Date', formatDate(date) + ' (' + date + ')'],
+          ['Export Time', exportDateTime.toLocaleTimeString('en-US')],
+          [],
+          ['Items', 'Quantity', 'Price', 'Total', 'Stock In']
+        ];
+
+        // Add product rows
+        products.forEach(productName => {
+          const data = groupedData[date][productName];
+          const stockIn = stockInData[productName] || '';
+          sheetData.push([
+            productName,
+            data.quantity,
+            data.avgPrice.toFixed(2),
+            data.total.toFixed(2),
+            stockIn
+          ]);
         });
-      });
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+        
+        // Set column widths
+        worksheet['!cols'] = [
+          { wch: 30 },  // Items
+          { wch: 12 },  // Quantity
+          { wch: 12 },  // Price
+          { wch: 12 },  // Total
+          { wch: 12 }   // Stock In
+        ];
+
+        // Sanitize sheet name (Excel has 31 char limit and doesn't allow certain chars)
+        const sheetName = formatDate(date).substring(0, 31).replace(/[:\\/?*\[\]]/g, '-');
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      }
 
       // Calculate summary data
       const totalSales = sales.length;
       const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
       const totalQuantity = sales.reduce((sum, sale) => sum + sale.quantity, 0);
-
-      // Create workbook and worksheet
-      const workbook = XLSX.utils.book_new();
-      
-      // Main sales data sheet
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-      
-      // Set column widths
-      const columnWidths = [
-        { wch: 8 },   // S.No
-        { wch: 15 },  // Date
-        { wch: 30 },  // Product Name
-        { wch: 15 },  // Location
-        { wch: 15 },  // Total Quantity
-        { wch: 15 },  // Avg Price
-        { wch: 18 }   // Total Amount
-      ];
-      worksheet['!cols'] = columnWidths;
 
       // Add summary sheet with detailed statistics
       const summaryData = [
@@ -165,9 +217,9 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
         ['', ''],
         ['=== SALES STATISTICS ===', ''],
         ['Total Sales Count', totalSales],
-        ['Total Revenue (ETB)', totalRevenue.toFixed(2)],
+        ['Total Revenue (ETB)', totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })],
         ['Total Quantity Sold', totalQuantity],
-        ['Average Sale Value (ETB)', totalSales > 0 ? (totalRevenue / totalSales).toFixed(2) : '0.00'],
+        ['Average Sale Value (ETB)', totalSales > 0 ? (totalRevenue / totalSales).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'],
         ['Average Quantity per Sale', totalSales > 0 ? (totalQuantity / totalSales).toFixed(2) : '0.00'],
         ['', ''],
         ['=== PRODUCT BREAKDOWN ===', ''],
@@ -184,15 +236,14 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
             acc[sale.productName] = (acc[sale.productName] || 0) + sale.total;
             return acc;
           }, {} as Record<string, number>)
-        ).map(([product, revenue]) => [product, `ETB ${revenue.toFixed(2)}`])
+        ).map(([product, revenue]) => [product, `${revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`])
       ];
 
       const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
       summarySheet['!cols'] = [{ wch: 25 }, { wch: 20 }];
 
-      // Add sheets to workbook
+      // Add summary as first sheet
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales Data');
 
       // Generate filename
       const startDateFormatted = startDate.replace(/-/g, '');
@@ -203,6 +254,105 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
       XLSX.writeFile(workbook, filename);
 
       console.log(`Successfully exported ${sales.length} sales to Excel file: ${filename}`);
+
+      // Close modal after successful export
+      onClose();
+      
+    } catch (err: any) {
+      console.error('Error exporting to Excel:', err);
+      setError(err.message || 'Failed to export data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportSingleDate = async (date: string) => {
+    try {
+      setIsExporting(true);
+      setError('');
+
+      // Fetch sales for this specific date
+      const response = await axios.get(`${API_URL}/sales`, {
+        params: {
+          location: location,
+          date: date,
+          limit: 10000
+        }
+      });
+      const sales: Sale[] = response.data.docs || response.data.data || [];
+
+      if (sales.length === 0) {
+        setError('No sales found for this date');
+        return;
+      }
+
+      // Fetch stock-in data for this date
+      const stockInData = await fetchStockInForDate(date);
+
+      // Group sales by product
+      const groupedData: Record<string, { quantity: number; total: number; avgPrice: number }> = {};
+      
+      sales.forEach(sale => {
+        if (!groupedData[sale.productName]) {
+          groupedData[sale.productName] = { quantity: 0, total: 0, avgPrice: 0 };
+        }
+        groupedData[sale.productName].quantity += sale.quantity;
+        groupedData[sale.productName].total += sale.total;
+      });
+
+      // Calculate average prices
+      Object.keys(groupedData).forEach(product => {
+        const data = groupedData[product];
+        data.avgPrice = data.quantity > 0 ? data.total / data.quantity : 0;
+      });
+
+      const products = Object.keys(groupedData).sort();
+      
+      // Header rows
+      const exportDateTime = new Date();
+      const sheetData: any[][] = [
+        ['Export Date', formatDate(date) + ' (' + date + ')'],
+        ['Export Time', exportDateTime.toLocaleTimeString('en-US')],
+        [],
+        ['Items', 'Quantity', 'Price', 'Total', 'Stock In']
+      ];
+
+      // Add product rows
+      products.forEach(productName => {
+        const data = groupedData[productName];
+        const stockIn = stockInData[productName] || '';
+        sheetData.push([
+          productName,
+          data.quantity,
+          data.avgPrice.toFixed(2),
+          data.total.toFixed(2),
+          stockIn
+        ]);
+      });
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+      
+      // Set column widths
+      worksheet['!cols'] = [
+        { wch: 30 },  // Items
+        { wch: 12 },  // Quantity
+        { wch: 12 },  // Price
+        { wch: 12 },  // Total
+        { wch: 12 }   // Stock In
+      ];
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, formatDate(date).substring(0, 31));
+
+      // Generate filename
+      const dateFormatted = date.replace(/-/g, '');
+      const filename = `Sales_${locationDisplayName.replace(/\s+/g, '_')}_${dateFormatted}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(workbook, filename);
+
+      console.log(`Successfully exported sales for ${date} to Excel file: ${filename}`);
 
       // Close modal after successful export
       onClose();
@@ -243,7 +393,15 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
 
           <div className="mb-4">
             <p className="text-sm text-gray-600">
-              Export sales data for <span className="font-medium">{locationDisplayName}</span> to Excel format.
+              {singleDate ? (
+                <>
+                  Export sales data for <span className="font-medium">{locationDisplayName}</span> on <span className="font-medium">{formatDate(singleDate)}</span> to Excel format.
+                </>
+              ) : (
+                <>
+                  Export sales data for <span className="font-medium">{locationDisplayName}</span> to Excel format.
+                </>
+              )}
             </p>
           </div>
 
@@ -253,35 +411,37 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <Calendar className="h-4 w-4 inline mr-1" />
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                required
-              />
-            </div>
+          {!singleDate && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Calendar className="h-4 w-4 inline mr-1" />
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <Calendar className="h-4 w-4 inline mr-1" />
-                End Date
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Calendar className="h-4 w-4 inline mr-1" />
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                  required
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex space-x-3 pt-4">
             <button
@@ -293,9 +453,9 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
             </button>
             <button
               onClick={exportToExcel}
-              disabled={isExporting || !startDate || !endDate}
+              disabled={isExporting || (!singleDate && (!startDate || !endDate))}
               className={`flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center justify-center ${
-                isExporting || !startDate || !endDate
+                isExporting || (!singleDate && (!startDate || !endDate))
                   ? 'opacity-50 cursor-not-allowed'
                   : ''
               }`}

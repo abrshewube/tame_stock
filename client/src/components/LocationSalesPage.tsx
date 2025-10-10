@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2, X, Download } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Package, DollarSign, Edit2, Trash2, X, Download, TrendingUp, ShoppingCart } from 'lucide-react';
 import axios from 'axios';
 import { recordSalesBatch } from '../services/saleService';
 import ExportSalesModal from './ExportSalesModal';
@@ -109,6 +109,9 @@ const LocationSalesPage = () => {
   const [allSales, setAllSales] = useState<Sale[]>([]);
   const [showBatchEditSalesForm, setShowBatchEditSalesForm] = useState(false);
   const [showBatchEditStockForm, setShowBatchEditStockForm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [exportDateOnly, setExportDateOnly] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (location) {
@@ -302,7 +305,7 @@ const LocationSalesPage = () => {
     const salesCount = getSalesCountForDate(date);
     const totalAmount = getTotalSalesForDate(date);
     
-    if (!window.confirm(`Are you sure you want to delete all ${salesCount} sales (Total: ETB ${totalAmount.toFixed(2)}) for ${formatDate(date)}? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to delete all ${salesCount} sales (Total: ${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB) for ${formatDate(date)}? This action cannot be undone.`)) {
       return;
     }
 
@@ -614,148 +617,212 @@ const LocationSalesPage = () => {
     return allSales.filter(sale => sale.date === date).length;
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(availableDates.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDates = availableDates.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleExportDateSales = () => {
+    setExportDateOnly(selectedDate);
+    setShowExportModal(true);
+  };
+
+  const handleCloseExportModal = () => {
+    setShowExportModal(false);
+    setExportDateOnly(undefined);
+  };
+
   // console.log(sales[0].description)
   if (!location) {
     return <div>Location not found</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-6 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-4000"></div>
+      </div>
+      
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="max-w-7xl mx-auto">
+          {/* Header - Beautiful Enhanced */}
+          <div className="backdrop-blur-lg bg-white/70 rounded-2xl shadow-lg border border-white/50 p-4 mb-4">
+            <div className="flex justify-between items-center">
             <div className="flex items-center">
               <button
                 onClick={() => navigate('/')}
-                className="flex items-center text-blue-600 hover:text-blue-800 mr-4"
+                  className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all mr-3 shadow-md hover:shadow-lg transform hover:scale-105"
               >
-                <ArrowLeft className="mr-2 h-5 w-5" />
-                Back
+                  <ArrowLeft className="h-4 w-4" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">{getLocationDisplayName(location)} Sales Management</h1>
-                <p className="text-gray-600">Manage sales and track inventory for {getLocationDisplayName(location)}</p>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{getLocationDisplayName(location)} Sales</h1>
+                  <p className="text-sm text-gray-600">Manage sales and track inventory</p>
               </div>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => navigate(`/sales-history/${location}`, { state: { location } })}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all text-sm shadow-md hover:shadow-lg transform hover:scale-105"
               >
-                <Calendar className="h-5 w-5 mr-2" />
-                View History
+                <Calendar className="h-4 w-4 mr-1" />
+                History
               </button>
               <button
                 onClick={() => setShowExportModal(true)}
-                className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+                className="flex items-center px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all text-sm shadow-md hover:shadow-lg transform hover:scale-105"
               >
-                <Download className="h-5 w-5 mr-2" />
-                Export Excel
+                <Download className="h-4 w-4 mr-1" />
+                Export
               </button>
               <button
                 onClick={() => setShowSaleForm(true)}
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                className="flex items-center px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all text-sm shadow-md hover:shadow-lg transform hover:scale-105"
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Add Sale
+                <Plus className="h-4 w-4 mr-1" />
+                Sale
               </button>
               <button
                 onClick={() => setShowBatchForm(true)}
-                className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+                className="flex items-center px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all text-sm shadow-md hover:shadow-lg transform hover:scale-105"
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Add Batch Sales
+                <Plus className="h-4 w-4 mr-1" />
+                Batch Sales
               </button>
               <button
                 onClick={() => setShowStockForm(true)}
-                className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+                className="flex items-center px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all text-sm shadow-md hover:shadow-lg transform hover:scale-105"
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Add Stock
+                <Plus className="h-4 w-4 mr-1" />
+                Stock
               </button>
               <button
                 onClick={() => setShowBatchStockForm(true)}
-                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                className="flex items-center px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all text-sm shadow-md hover:shadow-lg transform hover:scale-105"
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Add Batch Stock
+                <Plus className="h-4 w-4 mr-1" />
+                Batch Stock
               </button>
+            </div>
             </div>
           </div>
 
-          {/* Error and Success Messages */}
+          {/* Error and Success Messages - Enhanced */}
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
+            <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-300 text-red-700 px-4 py-3 rounded-xl mb-4 shadow-lg backdrop-blur-sm flex items-center space-x-2">
+              <div className="p-1 bg-red-200 rounded-full">
+                <X className="h-4 w-4 text-red-600" />
+              </div>
+              <span className="font-medium">{error}</span>
             </div>
           )}
           {success && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-              {success}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-100 border-2 border-green-300 text-green-700 px-4 py-3 rounded-xl mb-4 shadow-lg backdrop-blur-sm flex items-center space-x-2">
+              <div className="p-1 bg-green-200 rounded-full">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </div>
+              <span className="font-medium">{success}</span>
             </div>
           )}
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Available Dates List */}
+          <div className="grid lg:grid-cols-3 gap-4">
+            {/* Available Dates List - Beautiful Enhanced */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="backdrop-blur-lg bg-white/80 rounded-2xl shadow-2xl border border-white/50 p-4">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                      <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                      Available Dates
+                    <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                      <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mr-2">
+                        <Calendar className="h-4 w-4 text-white" />
+                      </div>
+                      Dates
                     </h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Click to view • Double-click to select/unselect
+                    <p className="text-xs text-gray-500 mt-1 ml-11">
+                      Select date
                     </p>
                   </div>
                   {availableDates.length > 0 && (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col items-end space-y-1">
                       <button
                         onClick={handleSelectAllDates}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                       >
-                        {selectedDates.length === availableDates.length ? 'Unselect All' : 'Select All'}
+                        {selectedDates.length === availableDates.length ? 'Unselect' : 'Select All'}
                       </button>
                       {selectedDates.length > 0 && (
                         <button
                           onClick={handleBulkDeleteDates}
                           disabled={isSubmitting}
-                          className="text-sm text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                          className="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
                         >
-                          Delete Selected ({selectedDates.length})
+                          Delete ({selectedDates.length})
                         </button>
                       )}
                     </div>
                   )}
                 </div>
                 {availableDates.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">No sales recorded yet</p>
+                  <div className="text-center py-8">
+                    <div className="inline-flex p-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl mb-3">
+                      <Calendar className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">No sales recorded yet</p>
+                  </div>
                 ) : (
-                  <div className="space-y-2">
-                    {availableDates.map((date) => {
+                  <>
+                    <div className="space-y-1.5">
+                      {paginatedDates.map((date) => {
                       const isSelected = selectedDates.includes(date);
                       const isActive = selectedDate === date;
                       
                       return (
                         <div
                           key={date}
-                          className={`w-full p-3 rounded-lg border transition-colors cursor-pointer ${
-                            isActive
-                              ? 'border-blue-500 bg-blue-50'
-                              : isSelected
-                              ? 'border-green-500 bg-green-50'
-                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
+                          className="group relative"
                           onClick={() => handleDateSelect(date)}
                           onDoubleClick={(e) => {
                             e.stopPropagation();
                             handleDateToggle(date);
                           }}
                         >
+                          <div className={`relative w-full p-3 rounded-xl border-2 transition-all cursor-pointer transform hover:scale-[1.02] ${
+                            isActive
+                              ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg'
+                              : isSelected
+                              ? 'border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 shadow-md'
+                              : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
+                          }`}>
+                            {/* Glow Effect */}
+                            {isActive && (
+                              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400 to-indigo-500 opacity-20 blur-sm -z-10"></div>
+                            )}
+                            
                           <div className="flex justify-between items-center">
-                            <span className={`font-medium ${
+                              <div className="flex items-center space-x-2 flex-1">
+                                <div className={`p-1.5 rounded-lg ${
+                                  isActive 
+                                    ? 'bg-blue-200' 
+                                    : isSelected 
+                                    ? 'bg-green-200' 
+                                    : 'bg-gray-100 group-hover:bg-blue-100'
+                                }`}>
+                                  <Calendar className={`h-3 w-3 ${
+                                    isActive 
+                                      ? 'text-blue-700' 
+                                      : isSelected 
+                                      ? 'text-green-700' 
+                                      : 'text-gray-600'
+                                  }`} />
+                                </div>
+                                <span className={`font-semibold text-xs ${
                               isActive 
                                 ? 'text-blue-700' 
                                 : isSelected 
@@ -763,116 +830,198 @@ const LocationSalesPage = () => {
                                 : 'text-gray-800'
                             }`}>
                               {formatDate(date)}
-                              {isSelected && (
-                                <span className="ml-2 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
-                                  Selected
-                                </span>
-                              )}
-                            </span>
-                            <span className="text-sm text-gray-500">
-                              {getSalesCountForDate(date)} sales
                             </span>
                           </div>
-                          <div className="text-sm text-gray-600 mt-1">
-                            Total: ETB {getTotalSalesForDate(date).toFixed(2)}
-                          </div>
-                          <div className="flex justify-end mt-2">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteDate(date);
                               }}
                               disabled={isSubmitting}
-                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                className="p-1 text-red-500 hover:text-white hover:bg-red-500 rounded-lg transition-all transform hover:scale-110 disabled:opacity-50"
                               title="Delete all sales for this date"
                             >
-                              <X className="h-4 w-4" />
+                                <X className="h-3 w-3" />
                             </button>
+                            </div>
+                            <div className="flex items-center space-x-2 mt-2 text-xs">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${
+                                isActive ? 'bg-blue-200 text-blue-700' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {getSalesCountForDate(date)} sales
+                              </span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${
+                                isActive ? 'bg-green-200 text-green-700' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {getTotalSalesForDate(date).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
+                              </span>
+                            </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* Pagination Controls - Beautiful Enhanced */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center mt-4 gap-1.5">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 font-medium rounded-lg hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:scale-105"
+                      >
+                        Prev
+                      </button>
+                      <div className="flex gap-1">
+                        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                          let page;
+                          if (totalPages <= 5) {
+                            page = i + 1;
+                          } else if (currentPage <= 3) {
+                            page = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            page = totalPages - 4 + i;
+                          } else {
+                            page = currentPage - 2 + i;
+                          }
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => handlePageChange(page)}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all shadow-sm hover:shadow-md transform hover:scale-105 ${
+                                currentPage === page
+                                  ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
+                                  : 'bg-white border border-gray-300 text-gray-700 hover:border-blue-300'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1.5 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 font-medium rounded-lg hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:scale-105"
+                      >
+                        Next
+                      </button>
+                  </div>
+                  )}
+                  </>
                 )}
               </div>
             </div>
 
-            {/* Sales and Stock for Selected Date */}
+            {/* Sales and Stock for Selected Date - Beautiful Enhanced */}
             <div className="lg:col-span-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="backdrop-blur-lg bg-white/80 rounded-2xl shadow-2xl border border-white/50 p-4">
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex flex-col">
-                      <h2 className="text-lg font-semibold text-gray-800">
-                        Sales for {formatDate(selectedDate)}
+                      <div className="flex items-center space-x-2 mb-1">
+                        <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+                          <ShoppingCart className="h-4 w-4 text-white" />
+                        </div>
+                        <h2 className="text-base font-bold text-gray-800">
+                          Sales
                       </h2>
                     </div>
-
-                    <div className="flex items-center space-x-2">
-                      <div className="text-sm text-gray-500">
-                        {sales.length} sales • Total: ETB {sales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
+                      <p className="text-xs text-gray-500">{formatDate(selectedDate)}</p>
+                      <div className="inline-flex items-center space-x-2 mt-2">
+                        <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                          {sales.length} sales
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                          {sales.reduce((sum, sale) => sum + sale.total, 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
+                        </span>
                       </div>
+                    </div>
+
+                    <div className="flex items-center space-x-1">
                       <button
                         onClick={() => setShowSaleForm(true)}
-                        className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-full transition-colors"
+                        className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg transform hover:scale-110"
                         title="Add new sale"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => setShowBatchEditSalesForm(true)}
-                        className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                        className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg transform hover:scale-110"
                         title="Edit all sales for this date"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
+                      <button
+                        onClick={handleExportDateSales}
+                        className="p-2 bg-gradient-to-br from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg transform hover:scale-110"
+                        title="Export sales for this date"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                   {sales.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                      <p>No sales recorded for this date</p>
+                    <div className="text-center py-8">
+                      <div className="inline-flex p-4 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl mb-3">
+                        <ShoppingCart className="h-8 w-8 text-green-600" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">No Sales Yet</p>
+                      <p className="text-xs text-gray-500">Add a sale to get started</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {sales.map((sale) => (
-                        <div key={sale._id} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex justify-between items-start">
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                      {sales.map((sale, index) => (
+                        <div 
+                          key={sale._id} 
+                          className="group relative bg-gradient-to-r from-white to-green-50/30 border-2 border-gray-200 rounded-xl p-3 hover:border-green-400 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5"
+                          style={{ animationDelay: `${index * 30}ms` }}
+                        >
+                          {/* Subtle Glow */}
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-400/0 to-emerald-400/0 group-hover:from-green-400/10 group-hover:to-emerald-400/10 transition-all duration-300"></div>
+                          
+                          <div className="relative z-10 flex justify-between items-start">
                             <div className="flex-1">
-                              <h3 className="font-medium text-gray-800">{sale.productName}</h3>
+                              <div className="flex items-center space-x-2 mb-1">
+                                <div className="p-1 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+                                  <Package className="h-3 w-3 text-green-600" />
+                                </div>
+                                <h3 className="font-semibold text-gray-800 text-sm group-hover:text-green-600 transition-colors">{sale.productName}</h3>
+                              </div>
                               {sale.description && (
-                                <p className="text-sm text-gray-600 mt-1">{sale.description}</p>
+                                <p className="text-xs text-gray-600 ml-8 mb-1 italic">{sale.description}</p>
                               )}
-                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                                <span className="flex items-center">
-                                  <Package className="h-4 w-4 mr-1" />
-                                  Qty: {sale.quantity}
+                              <div className="flex items-center space-x-2 ml-8 text-xs">
+                                <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded-full">
+                                  {sale.quantity} units
                                 </span>
-                                <span className="flex items-center">
-                                  <DollarSign className="h-4 w-4 mr-1" />
-                                  Price: ETB {sale.price.toFixed(2)}
+                                <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded-full">
+                                  {sale.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
                                 </span>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-lg font-semibold text-gray-800">
-                                ETB {sale.total.toFixed(2)}
+                            <div className="text-right ml-2">
+                              <div className="inline-flex items-center px-2 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-sm font-bold text-xs group-hover:shadow-md transition-shadow">
+                                {sale.total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(sale.createdAt).toLocaleTimeString()}
+                              <div className="text-xs text-gray-500 mt-1">
+                                {new Date(sale.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                               </div>
-                              <div className="flex space-x-2 mt-2">
+                              <div className="flex space-x-1 mt-1.5">
                                 <button
                                   onClick={() => handleEditSale(sale)}
-                                  className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                                  className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-all"
+                                  title="Edit"
                                 >
-                                  <Edit2 className="h-4 w-4 mr-1" /> Edit
+                                  <Edit2 className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteSale(sale._id)}
-                                  className="text-red-600 hover:text-red-800 text-sm flex items-center"
+                                  className="p-1 text-red-600 hover:bg-red-100 rounded transition-all"
+                                  title="Delete"
                                 >
-                                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                  <Trash2 className="h-3 w-3" />
                                 </button>
                               </div>
                             </div>
@@ -881,29 +1030,54 @@ const LocationSalesPage = () => {
                       ))}
                     </div>
                   )}
+                  
+                  <style dangerouslySetInnerHTML={{__html: `
+                    .custom-scrollbar::-webkit-scrollbar {
+                      width: 6px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-track {
+                      background: #f1f1f1;
+                      border-radius: 10px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb {
+                      background: linear-gradient(to bottom, #10b981, #059669);
+                      border-radius: 10px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                      background: linear-gradient(to bottom, #059669, #047857);
+                    }
+                  `}} />
                 </div>
-                <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="backdrop-blur-lg bg-white/80 rounded-2xl shadow-2xl border border-white/50 p-4">
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex flex-col">
-                      <h2 className="text-lg font-semibold text-gray-800">
-                        Stock In for {formatDate(selectedDate)}
+                      <div className="flex items-center space-x-2 mb-1">
+                        <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg">
+                          <Package className="h-4 w-4 text-white" />
+                        </div>
+                        <h2 className="text-base font-bold text-gray-800">
+                          Stock In
                       </h2>
                     </div>
-
-                    <div className="flex items-center space-x-2">
-                      <div className="text-sm text-gray-500">
-                        {stockIn.length} stock entries
+                      <p className="text-xs text-gray-500">{formatDate(selectedDate)}</p>
+                      <div className="inline-flex items-center space-x-2 mt-2">
+                        <span className="inline-flex items-center px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                          {stockIn.length} entries
+                        </span>
                       </div>
+                    </div>
+
+                    <div className="flex items-center space-x-1">
                       <button
                         onClick={() => setShowStockForm(true)}
-                        className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-full transition-colors"
+                        className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg transform hover:scale-110"
                         title="Add new stock"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => setShowBatchEditStockForm(true)}
-                        className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-full transition-colors"
+                        className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:scale-110"
                         title="Edit all stock for this date"
                       >
                         <Edit2 className="h-4 w-4" />
@@ -911,43 +1085,59 @@ const LocationSalesPage = () => {
                     </div>
                   </div>
                   {stockIn.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                      <p>No stock in for this date</p>
+                    <div className="text-center py-8">
+                      <div className="inline-flex p-4 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-2xl mb-3">
+                        <Package className="h-8 w-8 text-purple-600" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">No Stock In Yet</p>
+                      <p className="text-xs text-gray-500">Add stock to get started</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {stockIn.map((txn) => (
-                        <div key={txn._id} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex justify-between items-start">
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar-purple">
+                      {stockIn.map((txn, index) => (
+                        <div 
+                          key={txn._id} 
+                          className="group relative bg-gradient-to-r from-white to-purple-50/30 border-2 border-gray-200 rounded-xl p-3 hover:border-purple-400 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5"
+                          style={{ animationDelay: `${index * 30}ms` }}
+                        >
+                          {/* Subtle Glow */}
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-400/0 to-indigo-400/0 group-hover:from-purple-400/10 group-hover:to-indigo-400/10 transition-all duration-300"></div>
+                          
+                          <div className="relative z-10 flex justify-between items-start">
                             <div className="flex-1">
-                              <h3 className="font-medium text-gray-800">{txn.productName}</h3>
+                              <div className="flex items-center space-x-2 mb-1">
+                                <div className="p-1 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                                  <Package className="h-3 w-3 text-purple-600" />
+                                </div>
+                                <h3 className="font-semibold text-gray-800 text-sm group-hover:text-purple-600 transition-colors">{txn.productName}</h3>
+                              </div>
                               {txn.description && (
-                                <p className="text-sm text-gray-600 mt-1">{txn.description}</p>
+                                <p className="text-xs text-gray-600 ml-8 mb-1 italic">{txn.description}</p>
                               )}
-                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                                <span className="flex items-center">
-                                  <Package className="h-4 w-4 mr-1" />
-                                  Qty: {txn.quantity}
+                              <div className="flex items-center space-x-2 ml-8 text-xs">
+                                <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded-full">
+                                  {txn.quantity} units
                                 </span>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-xs text-gray-500">
-                                {new Date(txn.createdAt).toLocaleTimeString()}
+                            <div className="text-right ml-2">
+                              <div className="text-xs text-gray-500 mb-1">
+                                {new Date(txn.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                               </div>
-                              <div className="flex space-x-2 mt-2">
+                              <div className="flex space-x-1">
                                 <button
                                   onClick={() => handleEditStock(txn)}
-                                  className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                                  className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-all"
+                                  title="Edit"
                                 >
-                                  <Edit2 className="h-4 w-4 mr-1" /> Edit
+                                  <Edit2 className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteStock(txn)}
-                                  className="text-red-600 hover:text-red-800 text-sm flex items-center"
+                                  className="p-1 text-red-600 hover:bg-red-100 rounded transition-all"
+                                  title="Delete"
                                 >
-                                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                  <Trash2 className="h-3 w-3" />
                                 </button>
                               </div>
                             </div>
@@ -956,6 +1146,23 @@ const LocationSalesPage = () => {
                       ))}
                     </div>
                   )}
+                  
+                  <style dangerouslySetInnerHTML={{__html: `
+                    .custom-scrollbar-purple::-webkit-scrollbar {
+                      width: 6px;
+                    }
+                    .custom-scrollbar-purple::-webkit-scrollbar-track {
+                      background: #f1f1f1;
+                      border-radius: 10px;
+                    }
+                    .custom-scrollbar-purple::-webkit-scrollbar-thumb {
+                      background: linear-gradient(to bottom, #a855f7, #7c3aed);
+                      border-radius: 10px;
+                    }
+                    .custom-scrollbar-purple::-webkit-scrollbar-thumb:hover {
+                      background: linear-gradient(to bottom, #7c3aed, #6d28d9);
+                    }
+                  `}} />
                 </div>
               </div>
             </div>
@@ -1069,9 +1276,10 @@ const LocationSalesPage = () => {
           {/* Export Sales Modal */}
           <ExportSalesModal
             isOpen={showExportModal}
-            onClose={() => setShowExportModal(false)}
+            onClose={handleCloseExportModal}
             location={location}
             locationDisplayName={getLocationDisplayName(location)}
+            singleDate={exportDateOnly}
           />
 
           {/* Batch Edit Sales Modal */}
@@ -1267,7 +1475,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
         {formData.quantity && formData.price && (
           <div className="bg-blue-50 p-3 rounded-lg">
             <p className="text-sm text-blue-800">
-              Total: ETB {(parseFloat(formData.quantity) * parseFloat(formData.price)).toFixed(2)}
+              Total: {(parseFloat(formData.quantity) * parseFloat(formData.price)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
             </p>
           </div>
         )}
@@ -1535,7 +1743,7 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
         {formData.quantity && formData.price && (
           <div className="bg-blue-50 p-3 rounded-lg">
             <p className="text-sm text-blue-800">
-              Total: ETB {(parseFloat(formData.quantity) * parseFloat(formData.price)).toFixed(2)}
+              Total: {(parseFloat(formData.quantity) * parseFloat(formData.price)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
             </p>
           </div>
         )}
@@ -1767,7 +1975,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
                 </div>
                 <div className="md:col-span-2">
                   <div className="text-sm text-gray-600 mb-1">Total</div>
-                  <div className="font-medium">{row.quantity && row.price ? `ETB ${(parseFloat(row.quantity) * parseFloat(row.price)).toFixed(2)}` : '—'}</div>
+                  <div className="font-medium">{row.quantity && row.price ? `${(parseFloat(row.quantity) * parseFloat(row.price)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : '—'}</div>
                 </div>
                 <div className="md:col-span-1 flex md:justify-end">
                   <button type="button" onClick={() => removeRow(row.id)} className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">Delete</button>

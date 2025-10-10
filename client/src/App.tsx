@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-ro
 import { SproutIcon as Seedling, ArrowLeft, Plus, Package, ShoppingCart, BarChart3, TrendingUp } from "lucide-react"
 import DailySalesPage from "./components/DailySalesPage"
 import SalesHistory from "./components/SalesHistory"
+import SalesHistoryPage from "./components/SalesHistoryPage"
 import LocationSalesPage from "./components/LocationSalesPage"
 import { LocationCard } from "./components/LocationCard"
 import { ProductCard } from "./components/ProductCard"
@@ -79,23 +80,55 @@ const StatCard = ({
 
 const SalesLocationCard = ({ location, color }: { location: Location; color: string }) => {
   const colorClasses = {
-    green: "bg-green-100 text-green-600",
-    blue: "bg-blue-100 text-blue-600",
-    purple: "bg-purple-100 text-purple-600",
+    green: {
+      bg: "from-green-500 to-emerald-600",
+      hover: "from-green-600 to-emerald-700",
+      icon: "bg-green-100",
+      iconText: "text-green-600"
+    },
+    blue: {
+      bg: "from-blue-500 to-cyan-600",
+      hover: "from-blue-600 to-cyan-700",
+      icon: "bg-blue-100",
+      iconText: "text-blue-600"
+    },
+    purple: {
+      bg: "from-purple-500 to-indigo-600",
+      hover: "from-purple-600 to-indigo-700",
+      icon: "bg-purple-100",
+      iconText: "text-purple-600"
+    },
   }
+
+  const colors = colorClasses[color as keyof typeof colorClasses]
 
   return (
     <Link to={`/sales/${location}`} state={{ location }} className="block group">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-blue-200 transition-all duration-300 group-hover:-translate-y-1 p-8 text-center">
-        <div
-          className={`p-4 ${colorClasses[color as keyof typeof colorClasses]} rounded-2xl mx-auto mb-6 w-20 h-20 flex items-center justify-center group-hover:scale-110 transition-transform`}
-        >
-          <ShoppingCart className="h-8 w-8" />
+      <div className="relative bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 group-hover:-translate-y-2">
+        {/* Gradient Header */}
+        <div className={`bg-gradient-to-r ${colors.bg} p-8 relative overflow-hidden`}>
+          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="p-4 bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl mb-4 group-hover:scale-110 transition-transform">
+              <ShoppingCart className="h-10 w-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">
+              {getLocationDisplayName(location)}
+            </h3>
+            <div className="h-1 w-16 bg-white rounded-full opacity-50"></div>
+          </div>
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-          {getLocationDisplayName(location)} Sales
-        </h3>
-        <p className="text-gray-600">Manage sales and track performance</p>
+        
+        {/* Content */}
+        <div className="p-6 text-center">
+          <p className="text-gray-600 mb-4 leading-relaxed">
+            Manage sales and track performance
+          </p>
+          <div className={`inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r ${colors.bg} text-white rounded-lg font-medium group-hover:${colors.hover} transition-all shadow-md`}>
+            <BarChart3 className="h-4 w-4" />
+            <span>View Sales</span>
+          </div>
+        </div>
       </div>
     </Link>
   )
@@ -121,29 +154,58 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="container mx-auto px-6 py-12">
-        <div className="text-center mb-16">
+      <div className="container mx-auto px-6 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-6">
-            <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl shadow-lg">
+            <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl shadow-2xl transform hover:scale-105 transition-transform">
               <Package className="h-12 w-12 text-white" />
             </div>
           </div>
-         
+          <h1 className="text-5xl font-extrabold text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+            Tame Stock Management
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Streamline your inventory and sales operations across multiple locations
+          </p>
         </div>
 
-        <div className="mb-20">
-          
-        
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-6xl mx-auto mb-12">
+          <StatCard value={products.length} label="Total Products" color="gray" icon={Package} />
+          <StatCard
+            value={products.reduce((sum, p) => sum + (p.balance || 0), 0)}
+            label="Total Stock"
+            color="green"
+            icon={TrendingUp}
+          />
+          <StatCard
+            value={products.reduce((sum, p) => sum + (p.totalOut || 0), 0)}
+            label="Total Sold"
+            color="blue"
+            icon={ShoppingCart}
+          />
+          <StatCard
+            value={products.filter((p) => (p.balance || 0) === 0).length}
+            label="Out of Stock"
+            color="red"
+            icon={Package}
+          />
         </div>
 
-        <div className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Inventory Overview</h2>
-            <p className="text-gray-600 text-lg">Monitor stock levels and manage products across all locations</p>
+        {/* Inventory Section */}
+        <div className="mb-12">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center space-x-2 bg-white px-6 py-2 rounded-full shadow-md mb-4">
+              <Package className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Inventory</span>
+            </div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-3">Manage Your Locations</h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">Monitor stock levels and manage products across all locations</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
-            <a href="/location/Adama" className="block group">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <a href="/location/Adama" className="block group transform hover:scale-105 transition-all">
               <LocationCard
                 name="Adama"
                 productCount={locationStats["Adama"].count}
@@ -151,7 +213,7 @@ function HomePage() {
                 onClick={() => {}}
               />
             </a>
-            <a href="/location/AddisAbaba" className="block group">
+            <a href="/location/AddisAbaba" className="block group transform hover:scale-105 transition-all">
               <LocationCard
                 name={getLocationDisplayName("AddisAbaba")}
                 productCount={locationStats["AddisAbaba"].count}
@@ -160,7 +222,7 @@ function HomePage() {
                 locationValue="AddisAbaba"
               />
             </a>
-            <a href="/location/Chemicals" className="block group">
+            <a href="/location/Chemicals" className="block group transform hover:scale-105 transition-all">
               <LocationCard
                 name={getLocationDisplayName("Chemicals")}
                 productCount={locationStats["Chemicals"].count}
@@ -170,41 +232,31 @@ function HomePage() {
               />
             </a>
           </div>
-
-          {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            <StatCard value={products.length} label="Total Products" color="gray" icon={Package} />
-            <StatCard
-              value={products.reduce((sum, p) => sum + (p.balance || 0), 0)}
-              label="Total Stock"
-              color="green"
-              icon={TrendingUp}
-            />
-            <StatCard
-              value={products.reduce((sum, p) => sum + (p.totalOut || 0), 0)}
-              label="Total Sold"
-              color="blue"
-              icon={ShoppingCart}
-            />
-            <StatCard
-              value={products.filter((p) => (p.balance || 0) === 0).length}
-              label="Out of Stock"
-              color="red"
-              icon={Package}
-            />
-          </div> */}
         </div>
 
+        {/* Sales Section */}
         <div className="mb-12">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Sales Management</h2>
-            <p className="text-gray-600 text-lg">Track and manage sales performance by location</p>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center space-x-2 bg-white px-6 py-2 rounded-full shadow-md mb-4">
+              <ShoppingCart className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Sales</span>
+            </div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-3">Track Sales Performance</h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">Manage and analyze sales data across all your locations</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <SalesLocationCard location="Adama" color="green" />
             <SalesLocationCard location="AddisAbaba" color="blue" />
             <SalesLocationCard location="Chemicals" color="purple" />
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center py-8 border-t border-gray-200 mt-12">
+          <p className="text-gray-500 text-sm">
+            © 2025 Tame Stock Management. All rights reserved.
+          </p>
         </div>
       </div>
     </div>
@@ -360,6 +412,7 @@ function App() {
         <Route path="/sales/:location" element={<LocationSalesPage />} />
         <Route path="/daily-sales" element={<DailySalesPage />} />
         <Route path="/sales-history" element={<SalesHistory />} />
+        <Route path="/sales-history/:location" element={<SalesHistoryPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

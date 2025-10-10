@@ -241,18 +241,6 @@ router.post('/', validateProduct, async (req, res) => {
     const product = new Product(req.body);
     const savedProduct = await product.save();
 
-    // If initial balance is greater than 0, create an initial transaction
-    if (req.body.initialBalance > 0) {
-      const initialTransaction = new Transaction({
-        productId: savedProduct._id,
-        type: 'in',
-        quantity: req.body.initialBalance,
-        date: new Date().toISOString().split('T')[0],
-        description: 'Initial balance'
-      });
-      await initialTransaction.save();
-    }
-
     res.status(201).json({
       success: true,
       data: {
