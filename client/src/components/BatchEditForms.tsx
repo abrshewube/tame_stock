@@ -158,7 +158,7 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                  <input type="number" min="0.01" step="0.01" max={product?.balance || undefined} value={row.quantity} onChange={(e) => updateRow(row.id, { quantity: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="number" min="0.01" step="0.01" value={row.quantity} onChange={(e) => updateRow(row.id, { quantity: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Price (ETB)</label>

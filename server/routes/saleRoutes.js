@@ -354,7 +354,7 @@ router.delete('/date/:date', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { productId, productName, date, location, quantity, price } = req.body;
+    const { productId, productName, date, location, quantity, price, description } = req.body;
 
     const sale = await Sale.findById(id);
     if (!sale) {
@@ -374,9 +374,10 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ message: 'Invalid quantity or price' });
     }
 
-    if (product.balance < quantity) {
-      return res.status(400).json({ message: 'Insufficient stock' });
-    }
+    // Remove stock check for batch editing - allow any quantity to be edited
+    // if (product.balance < quantity) {
+    //   return res.status(400).json({ message: 'Insufficient stock' });
+    // }
 
     // Deduct new quantity
     product.balance -= quantity;
@@ -389,6 +390,7 @@ router.put('/:id', async (req, res) => {
     sale.location = location || sale.location;
     sale.quantity = quantity;
     sale.price = price;
+    sale.description = description !== undefined ? description : sale.description;
     sale.total = quantity * price;
     await sale.save();
 
@@ -399,7 +401,7 @@ router.put('/:id', async (req, res) => {
         type: 'out',
         quantity: sale.quantity,
         date: sale.date,
-        description: `Updated sale of ${sale.quantity} units at ${sale.price} ETB each`
+        description: description || `Updated sale of ${sale.quantity} units at ${sale.price} ETB each`
       });
     }
 
