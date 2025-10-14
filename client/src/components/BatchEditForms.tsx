@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = 'https://tame-stock.onrender.com/api';
+const API_URL = 'https://tame.ok1bingo.com/api';
 
 interface Product {
   _id: string;

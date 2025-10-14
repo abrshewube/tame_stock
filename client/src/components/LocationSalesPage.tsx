@@ -83,7 +83,7 @@ interface EditSaleFormProps {
   isSubmitting: boolean;
 }
 
-const API_URL = 'https://tame-stock.onrender.com/api';
+const API_URL = 'https://tame.ok1bingo.com/api';
 
 const LocationSalesPage = () => {
   const navigate = useNavigate();

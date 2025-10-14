@@ -18,7 +18,7 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-const API_URL = 'https://tame-stock.onrender.com/api';
+const API_URL = 'https://tame.ok1bingo.com/api';
 
 const DailySalesPage = () => {
   const navigate = useNavigate();
