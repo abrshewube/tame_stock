@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://tame-stock.onrender.com/api/sales';
+const API_URL = 'https://tame.ok1bingo.com/api/sales';
 
 export interface SaleData {
   productId: string;
