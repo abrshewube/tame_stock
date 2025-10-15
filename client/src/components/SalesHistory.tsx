@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, Filter, ChevronLeft, ChevronRight, Sparkles, Star } from 'lucide-react';
 import axios from 'axios';
 
 interface Sale {
@@ -95,22 +95,51 @@ const SalesHistory = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-blue-600 hover:text-blue-800"
-          >
-            <ArrowLeft className="mr-2 h-5 w-5" />
-            Back
-          </button>
-          <h1 className="text-2xl font-bold text-gray-800">Sales History</h1>
-          <div className="w-6"></div> {/* For alignment */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-8 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
+        
+        {/* Floating Icons */}
+        <Sparkles className="absolute top-1/4 right-1/4 h-6 w-6 text-yellow-400 opacity-20 animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }} />
+        <Star className="absolute bottom-1/3 left-1/4 h-5 w-5 text-pink-400 opacity-20 animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }} />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Header Card */}
+        <div className="backdrop-blur-lg bg-white/80 rounded-2xl shadow-xl border border-white/50 p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all mr-4 shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg">
+                    <Search className="h-5 w-5 text-white" />
+                  </div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Sales History
+                  </h1>
+                </div>
+                <p className="text-sm text-gray-600 mt-1 ml-11">View and analyze all sales records</p>
+              </div>
+            </div>
+            <button
+              onClick={clearFilters}
+              className="px-5 py-2.5 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-xl hover:from-gray-300 hover:to-gray-400 transition-all shadow-md hover:shadow-lg font-medium"
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="backdrop-blur-lg bg-white/90 rounded-2xl shadow-2xl border border-white/50 p-6 mb-6">
           <form onSubmit={handleSearch} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative">

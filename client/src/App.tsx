@@ -2,11 +2,12 @@
 import type React from "react"
 import { useState } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom"
-import { SproutIcon as Seedling, ArrowLeft, Plus, Package, ShoppingCart, BarChart3, TrendingUp } from "lucide-react"
+import { SproutIcon as Seedling, ArrowLeft, Plus, Package, ShoppingCart, BarChart3, TrendingUp, Sparkles, Zap, Star } from "lucide-react"
 import DailySalesPage from "./components/DailySalesPage"
 import SalesHistory from "./components/SalesHistory"
 import SalesHistoryPage from "./components/SalesHistoryPage"
 import LocationSalesPage from "./components/LocationSalesPage"
+import Navigation from "./components/Navigation"
 import { LocationCard } from "./components/LocationCard"
 import { ProductCard } from "./components/ProductCard"
 import { ProductDetails } from "./components/ProductDetails"
@@ -25,27 +26,6 @@ const getLocationDisplayName = (location: Location): string => {
   };
   return displayNames[location];
 };
-
-const ManagementCard = ({
-  title,
-  description,
-  icon: Icon,
-  to,
-}: { title: string; description: string; icon: React.ElementType; to: string }) => (
-  <Link to={to} className="block group">
-    <div className="h-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-blue-200 transition-all duration-300 group-hover:-translate-y-1">
-      <div className="p-8">
-        <div className="flex items-center mb-6">
-          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl mr-5 group-hover:from-blue-100 group-hover:to-indigo-200 transition-colors">
-            <Icon className="h-7 w-7 text-blue-600" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{title}</h3>
-        </div>
-        <p className="text-gray-600 leading-relaxed">{description}</p>
-      </div>
-    </div>
-  </Link>
-)
 
 const StatCard = ({
   value,
@@ -153,21 +133,46 @@ function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="container mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-4000"></div>
+        
+        {/* Floating Icons */}
+        <Sparkles className="absolute top-1/4 left-1/4 h-8 w-8 text-blue-400 opacity-30 animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }} />
+        <Star className="absolute top-1/3 right-1/4 h-6 w-6 text-indigo-400 opacity-30 animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }} />
+        <Zap className="absolute bottom-1/3 right-1/3 h-7 w-7 text-purple-400 opacity-30 animate-bounce" style={{ animationDelay: '2s', animationDuration: '3.5s' }} />
+      </div>
+
+      <div className="container mx-auto px-6 py-12 relative z-10">
         {/* Hero Section */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
-            <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl shadow-2xl transform hover:scale-105 transition-transform">
-              <Package className="h-12 w-12 text-white" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl blur-xl opacity-50 animate-pulse"></div>
+              <div className="relative p-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl shadow-2xl transform hover:scale-110 transition-all duration-300">
+                <Package className="h-14 w-14 text-white" />
+              </div>
             </div>
           </div>
-          <h1 className="text-5xl font-extrabold text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+          <h1 className="text-6xl md:text-7xl font-extrabold text-gray-900 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 animate-gradient">
             Tame Stock Management
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Streamline your inventory and sales operations across multiple locations
           </p>
+          <div className="mt-8 flex items-center justify-center space-x-4">
+            <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <span className="text-sm font-semibold text-gray-700">Smart Tracking</span>
+            </div>
+            <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+              <Zap className="h-5 w-5 text-orange-500" />
+              <span className="text-sm font-semibold text-gray-700">Real-time Updates</span>
+            </div>
+          </div>
         </div>
 
         {/* Quick Stats */}
@@ -253,9 +258,20 @@ function HomePage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center py-8 border-t border-gray-200 mt-12">
-          <p className="text-gray-500 text-sm">
+        <div className="text-center py-12 border-t border-gray-200/50 mt-16">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+              <Package className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Tame Stock
+            </span>
+          </div>
+          <p className="text-gray-500 text-sm mb-2">
             © 2025 Tame Stock Management. All rights reserved.
+          </p>
+          <p className="text-gray-400 text-xs">
+            Empowering businesses with smart inventory solutions
           </p>
         </div>
       </div>
@@ -404,6 +420,7 @@ function LocationPage({ location }: { location: Location }) {
 function App() {
   return (
     <Router>
+      <Navigation />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/location/Adama" element={<LocationPage location="Adama" />} />

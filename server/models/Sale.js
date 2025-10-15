@@ -20,7 +20,7 @@ const saleSchema = new mongoose.Schema({
   location: {
     type: String,
     required: [true, 'Location is required'],
-    enum: ['Adama', 'AddisAbaba']
+    enum: ['Adama', 'AddisAbaba', 'Chemicals']
   },
   quantity: {
     type: Number,

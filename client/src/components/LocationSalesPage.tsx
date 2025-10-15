@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Calendar, Package, Edit2, Trash2, X, Download, TrendingUp, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Package, Edit2, Trash2, X, Download, TrendingUp, ShoppingCart, Sparkles, Star, Zap } from 'lucide-react';
 import axios from 'axios';
 import { recordSalesBatch } from '../services/saleService';
 import ExportSalesModal from './ExportSalesModal';
@@ -725,6 +725,12 @@ const LocationSalesPage = () => {
         <div className="absolute top-20 right-20 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
         <div className="absolute bottom-20 left-20 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
         <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-4000"></div>
+        
+        {/* Floating Decorative Icons */}
+        <Sparkles className="absolute top-1/4 right-1/3 h-6 w-6 text-yellow-400 opacity-20 animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }} />
+        <Star className="absolute top-2/3 right-1/4 h-5 w-5 text-pink-400 opacity-20 animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }} />
+        <Zap className="absolute bottom-1/4 left-1/3 h-6 w-6 text-purple-400 opacity-20 animate-bounce" style={{ animationDelay: '2s', animationDuration: '3.5s' }} />
+        <Package className="absolute top-1/3 left-1/4 h-5 w-5 text-blue-400 opacity-20 animate-bounce" style={{ animationDelay: '1.5s', animationDuration: '3.8s' }} />
       </div>
       
       <div className="container mx-auto px-4 relative z-10">
