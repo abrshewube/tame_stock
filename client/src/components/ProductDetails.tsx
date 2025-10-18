@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Transaction, productService } from '../services/api';
-import { calculateBalance, getStockStatus, formatDate, formatCurrency, calculateDynamicStock } from '../utils/stockUtils';
+import { getStockStatus, formatDate, formatCurrency, calculateDynamicStock } from '../utils/stockUtils';
 import { 
   Calendar, 
   Package, 
   Edit, 
   Trash2, 
   X, 
-  MapPin,
   Plus,
   RotateCcw,
-  DollarSign
+  DollarSign,
+  Download
 } from 'lucide-react';
 import { ProductForm } from './ProductForm';
 import { TransactionForm } from './TransactionForm';
 import { TransactionTable } from './TransactionTable';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ProductDetailsProps {
   product: Product;
@@ -136,6 +138,105 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
     setCurrentPage(1);
   };
 
+  const handleExport = () => {
+    const doc = new jsPDF();
+    
+    // Compact header
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Inventory Report', 105, 15, { align: 'center' });
+    
+    // Product info in one line
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Product: ${product.name} | Location: ${product.location} | Price: ${formatCurrency(product.price)} | Date: ${new Date().toLocaleDateString()}`, 14, 22);
+    
+    // Table headers - English only
+    const headers = [
+      'Date',
+      'Document No.', 
+      'In',
+      'Out',
+      'Balance',
+      'Signature'
+    ];
+    
+    // Sort transactions by date (oldest first) to calculate running balance
+    const sortedTransactions = [...transactions].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    // Calculate running balance for each transaction
+    let runningBalance = product.initialBalance || 0;
+    const tableData = sortedTransactions.map((transaction) => {
+      // Calculate balance after this transaction
+      if (transaction.type === 'in') {
+        runningBalance += transaction.quantity;
+      } else {
+        runningBalance -= transaction.quantity;
+      }
+      
+      return [
+        formatDate(transaction.date),
+        transaction._id.substring(0, 8).toUpperCase(),
+        transaction.type === 'in' ? transaction.quantity.toString() : '-',
+        transaction.type === 'out' ? transaction.quantity.toString() : '-',
+        runningBalance.toString(),
+        ''
+      ];
+    });
+    
+    // Main table - larger and more prominent
+    autoTable(doc, {
+      head: [headers],
+      body: tableData,
+      startY: 28,
+      styles: {
+        fontSize: 10,
+        cellPadding: 5,
+        halign: 'center',
+        valign: 'middle'
+      },
+      headStyles: {
+        fillColor: [31, 81, 255],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 11
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      columnStyles: {
+        0: { halign: 'center' },
+        1: { halign: 'center' },
+        2: { halign: 'center' },
+        3: { halign: 'center' },
+        4: { halign: 'center' },
+        5: { halign: 'center' }
+      },
+      margin: { top: 28, right: 14, bottom: 25, left: 14 }
+    });
+    
+    // Small summary at the end
+    const finalY = (doc as any).lastAutoTable.finalY || 200;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Summary: Total ${transactions.length} transactions | In: ${transactions.filter(t => t.type === 'in').reduce((sum, t) => sum + t.quantity, 0)} | Out: ${transactions.filter(t => t.type === 'out').reduce((sum, t) => sum + t.quantity, 0)} | Balance: ${balance} units`, 14, finalY + 8);
+    
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.text(`Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, doc.internal.pageSize.width - 60, doc.internal.pageSize.height - 10);
+    }
+    
+    // Save the PDF
+    const fileName = `${product.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+  };
+
   if (isEditing) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -250,6 +351,14 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
             </button>
             
             <div className="flex space-x-2">
+              <button
+                onClick={handleExport}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </button>
+              
               <button
                 onClick={() => setShowClearHistoryConfirm(true)}
                 className="flex items-center space-x-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
