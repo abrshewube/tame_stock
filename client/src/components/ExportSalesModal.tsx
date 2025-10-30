@@ -163,11 +163,37 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
         const stockInData = await fetchStockInForDate(date);
         const products = Object.keys(groupedData[date]).sort();
         
+        // Compute totals for this date
+        const totals = products.reduce(
+          (acc, productName) => {
+            const data = groupedData[date][productName];
+            acc.quantity += data.quantity;
+            acc.total += data.total;
+            return acc;
+          },
+          { quantity: 0, total: 0 }
+        );
+
+        // Determine description for this date from sales data
+        const descriptionsForDate = Array.from(
+          new Set(
+            sales
+              .filter(s => s.date === date && s.description && s.description.trim().length > 0)
+              .map(s => s.description!.trim())
+          )
+        );
+        const dateDescription = descriptionsForDate.length > 0
+          ? (descriptionsForDate.length === 1
+              ? descriptionsForDate[0]
+              : descriptionsForDate.slice(0, 3).join('; ') + (descriptionsForDate.length > 3 ? '…' : ''))
+          : '';
+
         // Header rows
         const exportDateTime = new Date();
         const sheetData: any[][] = [
-          ['Export Date', formatDate(date) + ' (' + date + ')'],
+          ['Export Date', formatDate(date) + ' (' + date + ')', '', dateDescription],
           ['Export Time', exportDateTime.toLocaleTimeString('en-US')],
+          ['Location', locationDisplayName],
           [],
           ['Items', 'Quantity', 'Price', 'Total', 'Stock In']
         ];
@@ -184,6 +210,10 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
             stockIn
           ]);
         });
+
+        // Totals row
+        sheetData.push([]);
+        sheetData.push(['TOTAL', totals.quantity, '', totals.total.toFixed(2), '']);
 
         // Create worksheet
         const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
@@ -310,9 +340,24 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
       
       // Header rows
       const exportDateTime = new Date();
+      // Determine description for this date from sales data
+      const descriptionsForDate = Array.from(
+        new Set(
+          sales
+            .filter(s => s.description && s.description.trim().length > 0)
+            .map(s => s.description!.trim())
+        )
+      );
+      const dateDescription = descriptionsForDate.length > 0
+        ? (descriptionsForDate.length === 1
+            ? descriptionsForDate[0]
+            : descriptionsForDate.slice(0, 3).join('; ') + (descriptionsForDate.length > 3 ? '…' : ''))
+        : '';
+
       const sheetData: any[][] = [
-        ['Export Date', formatDate(date) + ' (' + date + ')'],
+        ['Export Date', formatDate(date) + ' (' + date + ')', '', dateDescription],
         ['Export Time', exportDateTime.toLocaleTimeString('en-US')],
+        ['Location', locationDisplayName],
         [],
         ['Items', 'Quantity', 'Price', 'Total', 'Stock In']
       ];
@@ -329,6 +374,19 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
           stockIn
         ]);
       });
+
+      // Totals row
+      const totalsSingle = products.reduce(
+        (acc, productName) => {
+          const data = groupedData[productName];
+          acc.quantity += data.quantity;
+          acc.total += data.total;
+          return acc;
+        },
+        { quantity: 0, total: 0 }
+      );
+      sheetData.push([]);
+      sheetData.push(['TOTAL', totalsSingle.quantity, '', totalsSingle.total.toFixed(2), '']);
 
       // Create workbook and worksheet
       const workbook = XLSX.utils.book_new();
@@ -442,6 +500,7 @@ const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
               </div>
             </div>
           )}
+          
 
           <div className="flex space-x-3 pt-4">
             <button
