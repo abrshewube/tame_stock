@@ -19,7 +19,7 @@ interface ApiResponse<T> {
 }
 
 const API_URL = 'https://tame.ok1bingo.com/api';
-const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
+const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret', 'Adama', 'Other'];
 
 const DailySalesPage = () => {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ const DailySalesPage = () => {
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [receiverSelection, setReceiverSelection] = useState('');
   const [receiver, setReceiver] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -86,6 +87,8 @@ const DailySalesPage = () => {
 
    
 
+    const receiverValue = receiver.trim();
+
     const saleData = {
       date,
       location,
@@ -94,7 +97,7 @@ const DailySalesPage = () => {
       quantity: quantityNum,
       price: priceNum,
       description,
-      receiver: receiver || undefined
+      receiver: receiverValue || undefined
     };
 
     try {
@@ -117,6 +120,7 @@ const DailySalesPage = () => {
       setPrice('');
       setDescription('');
       setReceiver('');
+      setReceiverSelection('');
       setSelectedProduct(null);
       
       // Refresh products to update stock
@@ -221,18 +225,44 @@ const DailySalesPage = () => {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     📥 Receiver
                   </label>
-                  <select
-                    value={receiver}
-                    onChange={(e) => setReceiver(e.target.value)}
-                    className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  >
-                    <option value="">Select receiver</option>
-                    {RECEIVER_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                  {receiverSelection === 'Other' ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={receiver}
+                        onChange={(e) => setReceiver(e.target.value)}
+                        placeholder="Enter receiver name"
+                        className="flex-1 p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReceiverSelection('');
+                          setReceiver('');
+                        }}
+                        className="px-3 py-2 text-sm border-2 border-gray-300 rounded-xl text-gray-600 hover:bg-gray-100 transition-all"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={receiverSelection}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setReceiverSelection(value);
+                        setReceiver(value === 'Other' ? '' : value);
+                      }}
+                      className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    >
+                      <option value="">Select receiver</option>
+                      {RECEIVER_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">

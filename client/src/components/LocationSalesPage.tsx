@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus, Calendar, Package, Edit2, Trash2, X, Download, TrendingUp, ShoppingCart, Sparkles, Star, Zap } from 'lucide-react';
 import axios from 'axios';
@@ -87,7 +87,21 @@ interface EditSaleFormProps {
 }
 
 const API_URL = 'https://tame.ok1bingo.com/api';
-const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
+const DEFAULT_RECEIVER_ORDER = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret', 'Adama'];
+const RECEIVER_OPTIONS = [...DEFAULT_RECEIVER_ORDER, 'Other'];
+
+const sortReceiverEntries = (entries: [string, number][]) => {
+  return entries.sort((a, b) => {
+    const indexA = DEFAULT_RECEIVER_ORDER.indexOf(a[0]);
+    const indexB = DEFAULT_RECEIVER_ORDER.indexOf(b[0]);
+    if (indexA === -1 && indexB === -1) {
+      return a[0].localeCompare(b[0]);
+    }
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+};
 
 const LocationSalesPage = () => {
   const navigate = useNavigate();
@@ -116,6 +130,14 @@ const LocationSalesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [exportDateOnly, setExportDateOnly] = useState<string | undefined>(undefined);
+  const [receiverTotalsForDate, setReceiverTotalsForDate] = useState<Record<string, number>>({});
+  const receiverSummaryEntries = useMemo(
+    () =>
+      sortReceiverEntries(
+        Object.entries(receiverTotalsForDate).filter(([, total]) => total > 0)
+      ),
+    [receiverTotalsForDate]
+  );
 
   useEffect(() => {
     if (location) {
@@ -139,6 +161,19 @@ const LocationSalesPage = () => {
       fetchStockIn();
     }
   }, [location, selectedDate, allSales]);
+
+  useEffect(() => {
+    const totals = sales.reduce((acc, sale) => {
+      if (sale.receiver) {
+        const key = sale.receiver;
+        const totalValue = sale.total ?? sale.quantity * sale.price;
+        acc[key] = (acc[key] || 0) + totalValue;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    setReceiverTotalsForDate(totals);
+  }, [sales]);
 
   // Reset to page 1 if current page is beyond total pages after filtering
   useEffect(() => {
@@ -1108,9 +1143,11 @@ const LocationSalesPage = () => {
                                 <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded-full">
                                   {sale.quantity} units
                                 </span>
-                                <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded-full">
-                                  {sale.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
-                                </span>
+                                {sale.price > 0 && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded-full">
+                                    {sale.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
+                                  </span>
+                                )}
                                 {sale.receiver && (
                                   <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">
                                     {sale.receiver}
@@ -1145,6 +1182,30 @@ const LocationSalesPage = () => {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {receiverSummaryEntries.length > 0 && (
+                    <div className="mt-4 border-t border-gray-200 pt-3">
+                      <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                        Totals by Receiver
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {receiverSummaryEntries.map(([receiverName, total]) => (
+                          <div
+                            key={receiverName}
+                            className="flex items-center justify-between px-2.5 py-1.5 bg-blue-50 border border-blue-100 rounded-lg"
+                          >
+                            <span className="text-xs font-medium text-blue-700">{receiverName}</span>
+                            <span className="text-xs font-semibold text-blue-900">
+                              {total.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })} ETB
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   
@@ -1431,7 +1492,6 @@ const LocationSalesPage = () => {
                   stockEntries={stockIn}
                   products={products}
                   defaultDate={selectedDate}
-                  locationName={location}
                   onSuccess={async () => {
                     setShowBatchEditStockForm(false);
                     await Promise.all([
@@ -1475,6 +1535,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
     description: '',
     receiver: ''
   });
+  const [receiverSelection, setReceiverSelection] = useState<string>('');
   const [saleDate, setSaleDate] = useState<string>(normalizeDateString(defaultDate));
 
   useEffect(() => {
@@ -1487,13 +1548,14 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
     if (!formData.productId || !formData.quantity || !formData.price) {
       return;
     }
+    const receiverValue = formData.receiver.trim();
     const success = await onSubmit({
       productId: formData.productId,
       productName: formData.productName,
       quantity: parseFloat(formData.quantity),
       price: parseFloat(formData.price),
       description: formData.description,
-      receiver: formData.receiver
+      receiver: receiverValue
     }, saleDate);
     if (success) {
       setFormData({
@@ -1505,6 +1567,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
         receiver: ''
       });
       setSaleDate(new Date().toISOString().split('T')[0]);
+      setReceiverSelection('');
     }
   };
 
@@ -1539,33 +1602,44 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
-          <select
-            value={formData.receiver}
-            onChange={(e) => setFormData(prev => ({ ...prev, receiver: e.target.value }))}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Select receiver</option>
-            {RECEIVER_OPTIONS.map(option => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
-          <select
-            value={formData.receiver}
-            onChange={(e) => setFormData(prev => ({ ...prev, receiver: e.target.value }))}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Select receiver</option>
-            {RECEIVER_OPTIONS.map(option => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          {receiverSelection === 'Other' ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.receiver}
+                onChange={(e) => setFormData(prev => ({ ...prev, receiver: e.target.value }))}
+                placeholder="Enter receiver name"
+                className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setReceiverSelection('');
+                  setFormData(prev => ({ ...prev, receiver: '' }));
+                }}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Back
+              </button>
+            </div>
+          ) : (
+            <select
+              value={receiverSelection || formData.receiver}
+              onChange={(e) => {
+                const value = e.target.value;
+                setReceiverSelection(value);
+                setFormData(prev => ({ ...prev, receiver: value === 'Other' ? '' : value }));
+              }}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select receiver</option>
+              {RECEIVER_OPTIONS.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
@@ -1783,6 +1857,10 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
     receiver: sale.receiver || '',
   });
   const [saleDate, setSaleDate] = useState<string>(sale.date);
+  const [receiverSelection, setReceiverSelection] = useState<string>(() => {
+    if (!sale.receiver) return '';
+    return RECEIVER_OPTIONS.includes(sale.receiver) ? sale.receiver : 'Other';
+  });
   const selectedProduct = products.find(p => p._id === formData.productId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1790,13 +1868,14 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
     if (!formData.productId || !formData.quantity || !formData.price) {
       return;
     }
+    const receiverValue = formData.receiver.trim();
     const success = await onSubmit({
       productId: formData.productId,
       productName: formData.productName,
       quantity: parseFloat(formData.quantity),
       price: parseFloat(formData.price),
       description: formData.description,
-      receiver: formData.receiver
+      receiver: receiverValue
     }, saleDate);
     if (success) {
       setFormData({
@@ -1808,6 +1887,7 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
         receiver: ''
       });
       setSaleDate(new Date().toISOString().split('T')[0]);
+      setReceiverSelection('');
     }
   };
 
@@ -1856,6 +1936,47 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
             ))}
           </select>
         </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
+      {receiverSelection === 'Other' ? (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={formData.receiver}
+            onChange={(e) => setFormData(prev => ({ ...prev, receiver: e.target.value }))}
+            placeholder="Enter receiver name"
+            className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setReceiverSelection('');
+              setFormData(prev => ({ ...prev, receiver: '' }));
+            }}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            Back
+          </button>
+        </div>
+      ) : (
+        <select
+          value={receiverSelection || formData.receiver}
+          onChange={(e) => {
+            const value = e.target.value;
+            setReceiverSelection(value);
+            setFormData(prev => ({ ...prev, receiver: value === 'Other' ? '' : value }));
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">Select receiver</option>
+          {RECEIVER_OPTIONS.map(option => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
           <textarea
@@ -2018,6 +2139,7 @@ interface BatchRow {
   quantity: string;
   price: string;
   receiver: string;
+  receiverSelection: string;
 }
 
 interface BatchSalesFormProps {
@@ -2036,7 +2158,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
   const [error, setError] = useState<string>('');
 
   const addRow = () => {
-    setRows(prev => ([...prev, { id: Math.random().toString(36).slice(2), productId: '', productName: '', quantity: '', price: '', receiver: '' }]));
+    setRows(prev => ([...prev, { id: Math.random().toString(36).slice(2), productId: '', productName: '', quantity: '', price: '', receiver: '', receiverSelection: '' }]));
   };
 
   const removeRow = (id: string) => {
@@ -2050,6 +2172,22 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
   const handleProductChange = (id: string, productId: string) => {
     const product = products.find(p => p._id === productId);
     updateRow(id, { productId, productName: product?.name || '', price: product ? String(product.price) : '' });
+  };
+
+  const handleReceiverSelectionChange = (id: string, value: string) => {
+    if (value === 'Other') {
+      updateRow(id, { receiverSelection: value, receiver: '' });
+    } else {
+      updateRow(id, { receiverSelection: value, receiver: value });
+    }
+  };
+
+  const handleReceiverCustomChange = (id: string, value: string) => {
+    updateRow(id, { receiver: value });
+  };
+
+  const handleReceiverReset = (id: string) => {
+    updateRow(id, { receiverSelection: '', receiver: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2077,7 +2215,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
           productName: r.productName,
           quantity: parseFloat(r.quantity),
           price: parseFloat(r.price),
-          receiver: r.receiver
+          receiver: r.receiver.trim() || undefined
         }))
       });
       onSuccess();
@@ -2134,18 +2272,37 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
-                  <select
-                    value={row.receiver}
-                    onChange={(e) => updateRow(row.id, { receiver: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select receiver</option>
-                    {RECEIVER_OPTIONS.map(option => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                  {row.receiverSelection === 'Other' ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={row.receiver}
+                        onChange={(e) => handleReceiverCustomChange(row.id, e.target.value)}
+                        placeholder="Enter receiver name"
+                        className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleReceiverReset(row.id)}
+                        className="px-3 py-2 text-sm border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={row.receiverSelection || row.receiver}
+                      onChange={(e) => handleReceiverSelectionChange(row.id, e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select receiver</option>
+                      {RECEIVER_OPTIONS.map(option => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div className="md:col-span-1">
                   <div className="text-sm text-gray-600 mb-1">Total</div>

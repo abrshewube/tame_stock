@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, Package, DollarSign, TrendingUp, Clock, Download } from 'lucide-react';
 import axios from 'axios';
@@ -26,7 +26,20 @@ interface DateSummary {
 }
 
 const API_URL = 'https://tame.ok1bingo.com/api';
-const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
+const DEFAULT_RECEIVER_ORDER = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret', 'Adama'];
+
+const sortReceiverEntries = (entries: [string, number][]) => {
+  return entries.sort((a, b) => {
+    const indexA = DEFAULT_RECEIVER_ORDER.indexOf(a[0]);
+    const indexB = DEFAULT_RECEIVER_ORDER.indexOf(b[0]);
+    if (indexA === -1 && indexB === -1) {
+      return a[0].localeCompare(b[0]);
+    }
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+};
 
 const SalesHistoryPage = () => {
   const navigate = useNavigate();
@@ -41,6 +54,21 @@ const SalesHistoryPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [receiverTotals, setReceiverTotals] = useState<Record<string, number>>({});
+  const [selectedReceiverTotals, setSelectedReceiverTotals] = useState<Record<string, number>>({});
+  const receiverSummaryEntries = useMemo(
+    () =>
+      sortReceiverEntries(
+        Object.entries(receiverTotals).filter(([, total]) => total > 0)
+      ),
+    [receiverTotals]
+  );
+  const selectedReceiverSummaryEntries = useMemo(
+    () =>
+      sortReceiverEntries(
+        Object.entries(selectedReceiverTotals).filter(([, total]) => total > 0)
+      ),
+    [selectedReceiverTotals]
+  );
 
   useEffect(() => {
     if (location) {
@@ -58,12 +86,7 @@ const SalesHistoryPage = () => {
     try {
       setLoading(true);
       setError('');
-      setReceiverTotals(
-        RECEIVER_OPTIONS.reduce((acc, option) => {
-          acc[option] = 0;
-          return acc;
-        }, {} as Record<string, number>)
-      );
+      setReceiverTotals({});
       
       const response = await axios.get(`${API_URL}/sales?location=${location}`);
       const allSales = response.data.docs || response.data.data || [];
@@ -96,17 +119,18 @@ const SalesHistoryPage = () => {
       setDateSummaries(summaries);
 
       // Calculate totals per receiver
-      const totalsByReceiver = RECEIVER_OPTIONS.reduce((acc, option) => {
-        acc[option] = 0;
-        return acc;
-      }, {} as Record<string, number>);
-
-      for (const sale of allSales) {
-        if (sale.receiver && totalsByReceiver.hasOwnProperty(sale.receiver)) {
-          totalsByReceiver[sale.receiver] += sale.total || (sale.quantity * sale.price);
+      const totalsByReceiver = (allSales as Sale[]).reduce((acc: Record<string, number>, sale: Sale) => {
+        if (sale.receiver) {
+          const totalValue = sale.total ?? sale.quantity * sale.price;
+          acc[sale.receiver] = (acc[sale.receiver] || 0) + totalValue;
         }
+        return acc;
+      }, {});
+      if (Object.keys(totalsByReceiver).length === 0) {
+        setReceiverTotals({});
+      } else {
+        setReceiverTotals(totalsByReceiver);
       }
-      setReceiverTotals(totalsByReceiver);
       
     } catch (err) {
       console.error('Error fetching sales history:', err);
@@ -118,9 +142,20 @@ const SalesHistoryPage = () => {
 
   const fetchSalesForDate = async (date: string) => {
     try {
+      setSelectedReceiverTotals({});
       const response = await axios.get(`${API_URL}/sales?location=${location}&date=${date}`);
       const salesData = response.data.docs || response.data.data || [];
       setSalesForSelectedDate(salesData);
+
+      const totalsByReceiver = (salesData as Sale[]).reduce((acc: Record<string, number>, sale: Sale) => {
+        if (sale.receiver) {
+          const totalValue = sale.total ?? sale.quantity * sale.price;
+          acc[sale.receiver] = (acc[sale.receiver] || 0) + totalValue;
+        }
+        return acc;
+      }, {});
+
+      setSelectedReceiverTotals(totalsByReceiver);
     } catch (err) {
       console.error('Error fetching sales for date:', err);
       setError('Failed to load sales for selected date. Please try again.');
@@ -134,6 +169,7 @@ const SalesHistoryPage = () => {
   const handleBackToDates = () => {
     setSelectedDate(null);
     setSalesForSelectedDate([]);
+    setSelectedReceiverTotals({});
   };
 
   const handleExportDate = (date: string, e: React.MouseEvent) => {
@@ -303,10 +339,12 @@ const SalesHistoryPage = () => {
                               <Package className="h-3 w-3 mr-1" />
                               {sale.quantity} units
                             </span>
-                            <span className="flex items-center px-2 py-1 bg-gray-100 rounded-full">
-                              <DollarSign className="h-3 w-3 mr-1" />
-                              {sale.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+                            {sale.price > 0 && (
+                              <span className="flex items-center px-2 py-1 bg-gray-100 rounded-full">
+                                <DollarSign className="h-3 w-3 mr-1" />
+                                {sale.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            )}
                     {sale.receiver && (
                       <span className="flex items-center px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
                         {sale.receiver}
@@ -328,6 +366,24 @@ const SalesHistoryPage = () => {
                   ))}
                 </div>
               )}
+            {selectedReceiverSummaryEntries.length > 0 && (
+              <div className="mt-6 border-t border-gray-200 pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Totals by Receiver</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {selectedReceiverSummaryEntries.map(([receiverName, total]) => (
+                    <div
+                      key={receiverName}
+                      className="flex items-center justify-between px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg"
+                    >
+                      <span className="text-sm font-medium text-blue-700">{receiverName}</span>
+                      <span className="text-sm font-semibold text-blue-900">
+                        {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             </div>
             
             <style dangerouslySetInnerHTML={{__html: `
@@ -521,18 +577,18 @@ const SalesHistoryPage = () => {
                   </button>
                 </div>
               )}
-              {dateSummaries.length > 0 && RECEIVER_OPTIONS.length > 0 && (
+              {receiverSummaryEntries.length > 0 && (
                 <div className="mt-6 border-t border-gray-200 pt-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">Totals by Receiver</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {RECEIVER_OPTIONS.map(option => (
+                    {receiverSummaryEntries.map(([receiverName, total]) => (
                       <div
-                        key={option}
+                        key={receiverName}
                         className="flex items-center justify-between px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg"
                       >
-                        <span className="text-sm font-medium text-blue-700">{option}</span>
+                        <span className="text-sm font-medium text-blue-700">{receiverName}</span>
                         <span className="text-sm font-semibold text-blue-900">
-                          {(receiverTotals[option] || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                         </span>
                       </div>
                     ))}

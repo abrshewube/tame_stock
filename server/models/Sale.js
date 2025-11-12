@@ -39,9 +39,8 @@ const saleSchema = new mongoose.Schema({
   },
   receiver: {
     type: String,
-    enum: ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'],
-    default: undefined,
-    trim: true
+    trim: true,
+    default: undefined
   },
   description: {
     type: String,

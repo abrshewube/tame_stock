@@ -4,18 +4,13 @@ import Transaction from '../models/Transaction.js';
 import Sale from '../models/Sale.js';
 
 const router = express.Router();
-const VALID_RECEIVERS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
-
 const normalizeReceiver = (receiver) => {
   if (receiver === undefined || receiver === null) {
     return undefined;
   }
   const value = String(receiver).trim();
-  if (value.length === 0) {
+  if (value.length === 0 || value.toLowerCase() === 'other') {
     return undefined;
-  }
-  if (!VALID_RECEIVERS.includes(value)) {
-    throw new Error(`Invalid receiver value: ${receiver}`);
   }
   return value;
 };

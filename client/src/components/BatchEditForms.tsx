@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = 'https://tame.ok1bingo.com/api';
-const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
+const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret', 'Adama', 'Other'];
 
 interface Product {
   _id: string;
@@ -56,6 +56,7 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
     price: string;
     description: string;
     receiver: string;
+    receiverSelection: string;
   }>>([]);
   const [batchDate, setBatchDate] = useState<string>((defaultDate && defaultDate.includes('T')) ? defaultDate.split('T')[0] : defaultDate);
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +72,10 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
       quantity: sale.quantity.toString(),
       price: sale.price.toString(),
       description: sale.description || '',
-      receiver: sale.receiver || ''
+      receiver: sale.receiver || '',
+      receiverSelection: sale.receiver
+        ? (RECEIVER_OPTIONS.includes(sale.receiver) ? sale.receiver : 'Other')
+        : ''
     }));
     setRows(initialRows);
   }, [sales]);
@@ -87,6 +91,22 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
   const handleProductChange = (id: string, productId: string) => {
     const product = products.find(p => p._id === productId);
     updateRow(id, { productId, productName: product?.name || '', price: product ? String(product.price) : '' });
+  };
+
+  const handleReceiverSelectionChange = (id: string, value: string) => {
+    if (value === 'Other') {
+      updateRow(id, { receiverSelection: value, receiver: '' });
+    } else {
+      updateRow(id, { receiverSelection: value, receiver: value });
+    }
+  };
+
+  const handleReceiverCustomChange = (id: string, value: string) => {
+    updateRow(id, { receiver: value });
+  };
+
+  const handleReceiverReset = (id: string) => {
+    updateRow(id, { receiverSelection: '', receiver: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,7 +139,7 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
           quantity: parseFloat(row.quantity),
           price: parseFloat(row.price),
           description: row.description,
-          receiver: row.receiver
+          receiver: row.receiver.trim() || undefined
         });
       }
 
@@ -149,7 +169,6 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
 
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {rows.map((row) => {
-            const product = products.find(p => p._id === row.productId);
             return (
               <div key={row.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border border-gray-200 rounded-lg p-3 bg-gray-50">
                 <div className="md:col-span-4">
@@ -171,18 +190,37 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
-                  <select
-                    value={row.receiver}
-                    onChange={(e) => updateRow(row.id, { receiver: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select receiver</option>
-                    {RECEIVER_OPTIONS.map(option => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                  {row.receiverSelection === 'Other' ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={row.receiver}
+                        onChange={(e) => handleReceiverCustomChange(row.id, e.target.value)}
+                        placeholder="Enter receiver name"
+                        className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleReceiverReset(row.id)}
+                        className="px-3 py-2 text-sm border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={row.receiverSelection || row.receiver}
+                      onChange={(e) => handleReceiverSelectionChange(row.id, e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select receiver</option>
+                      {RECEIVER_OPTIONS.map(option => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -223,12 +261,11 @@ interface BatchEditStockFormProps {
   stockEntries: any[];
   products: Product[];
   defaultDate: string;
-  locationName: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export const BatchEditStockForm: React.FC<BatchEditStockFormProps> = ({ stockEntries, products, defaultDate, locationName, onSuccess, onCancel }) => {
+export const BatchEditStockForm: React.FC<BatchEditStockFormProps> = ({ stockEntries, products, defaultDate, onSuccess, onCancel }) => {
   const [rows, setRows] = useState<Array<{
     id: string;
     transactionId: string;
