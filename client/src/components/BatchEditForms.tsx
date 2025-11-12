@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = 'https://tame.ok1bingo.com/api';
+const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
 
 interface Product {
   _id: string;
@@ -23,6 +24,7 @@ interface Sale {
   description?: string;
   total: number;
   createdAt: string;
+  receiver?: string;
 }
 
 const formatDate = (dateString: string) => {
@@ -53,6 +55,7 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
     quantity: string;
     price: string;
     description: string;
+    receiver: string;
   }>>([]);
   const [batchDate, setBatchDate] = useState<string>((defaultDate && defaultDate.includes('T')) ? defaultDate.split('T')[0] : defaultDate);
   const [submitting, setSubmitting] = useState(false);
@@ -67,7 +70,8 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
       productName: sale.productName,
       quantity: sale.quantity.toString(),
       price: sale.price.toString(),
-      description: sale.description || ''
+      description: sale.description || '',
+      receiver: sale.receiver || ''
     }));
     setRows(initialRows);
   }, [sales]);
@@ -114,7 +118,8 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
           location: locationName,
           quantity: parseFloat(row.quantity),
           price: parseFloat(row.price),
-          description: row.description
+          description: row.description,
+          receiver: row.receiver
         });
       }
 
@@ -164,14 +169,40 @@ export const BatchEditSalesForm: React.FC<BatchEditSalesFormProps> = ({ sales, p
                   <label className="block text-sm font-medium text-gray-700 mb-1">Price (ETB)</label>
                   <input type="number" step="0.01" value={row.price} onChange={(e) => updateRow(row.id, { price: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
                 </div>
-                <div className="md:col-span-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <input type="text" value={row.description} onChange={(e) => updateRow(row.id, { description: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Optional" />
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
+                  <select
+                    value={row.receiver}
+                    onChange={(e) => updateRow(row.id, { receiver: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select receiver</option>
+                    {RECEIVER_OPTIONS.map(option => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="md:col-span-1 flex md:justify-end">
-                  <button type="button" onClick={() => removeRow(row.id)} className="px-3 py-2 border border-gray-300 text-red-600 rounded-md hover:bg-red-50" title="Remove this sale">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={row.description}
+                      onChange={(e) => updateRow(row.id, { description: e.target.value })}
+                      className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Optional"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeRow(row.id)}
+                      className="px-3 py-2 border border-gray-300 text-red-600 rounded-md hover:bg-red-50"
+                      title="Remove this sale"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );

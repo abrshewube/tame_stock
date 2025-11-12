@@ -37,6 +37,12 @@ const saleSchema = new mongoose.Schema({
     required: [true, 'Total amount is required'],
     min: [0, 'Total amount cannot be negative']
   },
+  receiver: {
+    type: String,
+    enum: ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'],
+    default: undefined,
+    trim: true
+  },
   description: {
     type: String,
     

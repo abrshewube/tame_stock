@@ -19,6 +19,7 @@ interface ApiResponse<T> {
 }
 
 const API_URL = 'https://tame.ok1bingo.com/api';
+const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
 
 const DailySalesPage = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const DailySalesPage = () => {
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [receiver, setReceiver] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,7 +93,8 @@ const DailySalesPage = () => {
       productName: selectedProduct.name,
       quantity: quantityNum,
       price: priceNum,
-      description
+      description,
+      receiver: receiver || undefined
     };
 
     try {
@@ -113,6 +116,7 @@ const DailySalesPage = () => {
       setQuantity('');
       setPrice('');
       setDescription('');
+      setReceiver('');
       setSelectedProduct(null);
       
       // Refresh products to update stock
@@ -212,7 +216,24 @@ const DailySalesPage = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    📥 Receiver
+                  </label>
+                  <select
+                    value={receiver}
+                    onChange={(e) => setReceiver(e.target.value)}
+                    className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  >
+                    <option value="">Select receiver</option>
+                    {RECEIVER_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     📅 Date

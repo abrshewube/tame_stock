@@ -13,6 +13,7 @@ interface Sale {
   description?: string;
   total: number;
   createdAt: string;
+  receiver?: string;
 }
 
 const API_URL = 'https://tame.ok1bingo.com/api';
@@ -162,7 +163,7 @@ const SalesHistory = () => {
               >
                 <option value="">All Locations</option>
                 <option value="Adama">Adama</option>
-000000000000000000000000000000000000000000                <option value="AddisAbaba">AddisAbaba</option>
+               <option value="AddisAbaba">AddisAbaba</option>
               </select>
               
               <input
@@ -228,6 +229,9 @@ const SalesHistory = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Location
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Receiver
+                      </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Qty
                       </th>
@@ -255,6 +259,9 @@ const SalesHistory = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {sale.location}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {sale.receiver || '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
                           {sale.quantity}

@@ -15,6 +15,7 @@ interface Sale {
   description?: string;
   total: number;
   createdAt: string;
+  receiver?: string;
 }
 
 interface DateSummary {
@@ -25,6 +26,7 @@ interface DateSummary {
 }
 
 const API_URL = 'https://tame.ok1bingo.com/api';
+const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
 
 const SalesHistoryPage = () => {
   const navigate = useNavigate();
@@ -38,6 +40,7 @@ const SalesHistoryPage = () => {
   const [exportDateOnly, setExportDateOnly] = useState<string | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [receiverTotals, setReceiverTotals] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (location) {
@@ -55,6 +58,12 @@ const SalesHistoryPage = () => {
     try {
       setLoading(true);
       setError('');
+      setReceiverTotals(
+        RECEIVER_OPTIONS.reduce((acc, option) => {
+          acc[option] = 0;
+          return acc;
+        }, {} as Record<string, number>)
+      );
       
       const response = await axios.get(`${API_URL}/sales?location=${location}`);
       const allSales = response.data.docs || response.data.data || [];
@@ -85,6 +94,19 @@ const SalesHistoryPage = () => {
       // Sort by date (newest first) - dates are now strings in YYYY-MM-DD format
       summaries.sort((a, b) => b.date.localeCompare(a.date));
       setDateSummaries(summaries);
+
+      // Calculate totals per receiver
+      const totalsByReceiver = RECEIVER_OPTIONS.reduce((acc, option) => {
+        acc[option] = 0;
+        return acc;
+      }, {} as Record<string, number>);
+
+      for (const sale of allSales) {
+        if (sale.receiver && totalsByReceiver.hasOwnProperty(sale.receiver)) {
+          totalsByReceiver[sale.receiver] += sale.total || (sale.quantity * sale.price);
+        }
+      }
+      setReceiverTotals(totalsByReceiver);
       
     } catch (err) {
       console.error('Error fetching sales history:', err);
@@ -271,6 +293,11 @@ const SalesHistoryPage = () => {
                           {sale.description && (
                             <p className="text-xs text-gray-600 ml-12 mb-2 italic">{sale.description}</p>
                           )}
+                          {sale.receiver && (
+                            <p className="text-xs text-blue-600 ml-12 mb-1 font-semibold">
+                              Receiver: {sale.receiver}
+                            </p>
+                          )}
                           <div className="flex items-center space-x-4 ml-12 text-xs text-gray-500">
                             <span className="flex items-center px-2 py-1 bg-gray-100 rounded-full">
                               <Package className="h-3 w-3 mr-1" />
@@ -280,6 +307,11 @@ const SalesHistoryPage = () => {
                               <DollarSign className="h-3 w-3 mr-1" />
                               {sale.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
+                    {sale.receiver && (
+                      <span className="flex items-center px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                        {sale.receiver}
+                      </span>
+                    )}
                             <span className="flex items-center px-2 py-1 bg-gray-100 rounded-full">
                               <Clock className="h-3 w-3 mr-1" />
                               {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -487,6 +519,24 @@ const SalesHistoryPage = () => {
                   >
                     Next
                   </button>
+                </div>
+              )}
+              {dateSummaries.length > 0 && RECEIVER_OPTIONS.length > 0 && (
+                <div className="mt-6 border-t border-gray-200 pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Totals by Receiver</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {RECEIVER_OPTIONS.map(option => (
+                      <div
+                        key={option}
+                        className="flex items-center justify-between px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg"
+                      >
+                        <span className="text-sm font-medium text-blue-700">{option}</span>
+                        <span className="text-sm font-semibold text-blue-900">
+                          {(receiverTotals[option] || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               </>

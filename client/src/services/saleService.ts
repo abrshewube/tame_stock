@@ -10,6 +10,7 @@ export interface SaleData {
   quantity: number;
   price: number;
   description?: string;
+  receiver?: string;
 }
 
 export interface SalesBatchItem {
@@ -17,6 +18,7 @@ export interface SalesBatchItem {
   productName: string;
   quantity: number;
   price: number;
+  receiver?: string;
 }
 
 export const recordSalesBatch = async (params: { date: string; location: string; description?: string; sales: SalesBatchItem[] }) => {

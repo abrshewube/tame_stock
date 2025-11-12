@@ -1,10 +1,24 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Transaction from '../models/Transaction.js';
 import Sale from '../models/Sale.js';
 
 const router = express.Router();
+const VALID_RECEIVERS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
+
+const normalizeReceiver = (receiver) => {
+  if (receiver === undefined || receiver === null) {
+    return undefined;
+  }
+  const value = String(receiver).trim();
+  if (value.length === 0) {
+    return undefined;
+  }
+  if (!VALID_RECEIVERS.includes(value)) {
+    throw new Error(`Invalid receiver value: ${receiver}`);
+  }
+  return value;
+};
 
 // Bulk record sales for a single date
 router.post('/bulk', async (req, res) => {
@@ -17,12 +31,17 @@ router.post('/bulk', async (req, res) => {
 
     // Basic validation for each sale item
     for (const item of sales) {
-      const { productId, productName, quantity, price } = item || {};
+      const { productId, productName, quantity, price, receiver } = item || {};
       if (!productId || !productName || !quantity ) {
         return res.status(400).json({ message: 'Each sale requires productId, productName, quantity' });
       }
       if (quantity <= 0 ) {
         return res.status(400).json({ message: 'Invalid quantity  in one of the sales' });
+      }
+      try {
+        normalizeReceiver(receiver);
+      } catch (receiverError) {
+        return res.status(400).json({ message: receiverError.message });
       }
     }
 
@@ -30,7 +49,7 @@ router.post('/bulk', async (req, res) => {
 
     // Process sequentially to maintain stock integrity
     for (const item of sales) {
-      const { productId, productName, quantity, price } = item;
+      const { productId, productName, quantity, price, receiver } = item;
 
       const product = await Product.findById(productId);
       if (!product) {
@@ -62,7 +81,8 @@ router.post('/bulk', async (req, res) => {
         price,
         total: quantity * price,
         transactionId: transaction._id,
-        description
+        description,
+        receiver: normalizeReceiver(receiver)
       });
       await sale.save();
 
@@ -79,7 +99,7 @@ router.post('/bulk', async (req, res) => {
 // Record a new sale
 router.post('/', async (req, res) => {
   try {
-    const { productId, productName, date, location, quantity, price,description } = req.body;
+    const { productId, productName, date, location, quantity, price, description, receiver } = req.body;
     
     // Validate input
     if (!productId || !productName || !date || !location || !quantity ) {
@@ -125,7 +145,8 @@ router.post('/', async (req, res) => {
       price,
       total: quantity * price,
       transactionId: transaction._id,
-      description
+      description,
+      receiver: normalizeReceiver(receiver)
     });
 
     await sale.save();
@@ -354,7 +375,7 @@ router.delete('/date/:date', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { productId, productName, date, location, quantity, price, description } = req.body;
+    const { productId, productName, date, location, quantity, price, description, receiver } = req.body;
 
     const sale = await Sale.findById(id);
     if (!sale) {
@@ -392,6 +413,9 @@ router.put('/:id', async (req, res) => {
     sale.price = price;
     sale.description = description !== undefined ? description : sale.description;
     sale.total = quantity * price;
+    if (receiver !== undefined) {
+      sale.receiver = normalizeReceiver(receiver);
+    }
     await sale.save();
 
     // Update linked transaction

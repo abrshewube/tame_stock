@@ -35,6 +35,7 @@ interface Sale {
   description?: string;
   total: number;
   createdAt: string;
+  receiver?: string;
 }
 
 interface SaleFormData {
@@ -43,6 +44,7 @@ interface SaleFormData {
   quantity: number;
   price: number;
   description: string;
+  receiver?: string;
 }
 
 interface SaleFormState {
@@ -51,6 +53,7 @@ interface SaleFormState {
   quantity: string;
   price: string;
   description: string;
+  receiver: string;
 }
 
 interface StockFormState {
@@ -84,6 +87,7 @@ interface EditSaleFormProps {
 }
 
 const API_URL = 'https://tame.ok1bingo.com/api';
+const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret'];
 
 const LocationSalesPage = () => {
   const navigate = useNavigate();
@@ -451,7 +455,8 @@ const LocationSalesPage = () => {
         ...formData,
         date: saleDate,
         location: location!,
-        total: formData.quantity * formData.price
+        total: formData.quantity * formData.price,
+        receiver: formData.receiver
       };
       
       console.log('Adding sale:', saleData);
@@ -605,7 +610,8 @@ const LocationSalesPage = () => {
         ...formData,
         date: saleDate,
         location: location!,
-        total: formData.quantity * formData.price
+        total: formData.quantity * formData.price,
+        receiver: formData.receiver
       };
       
       console.log('Updating sale:', saleData);
@@ -1093,6 +1099,11 @@ const LocationSalesPage = () => {
                               {sale.description && (
                                 <p className="text-xs text-gray-600 ml-8 mb-1 italic">{sale.description}</p>
                               )}
+                              {sale.receiver && (
+                                <p className="text-xs text-blue-600 ml-8 mb-1 font-semibold">
+                                  Receiver: {sale.receiver}
+                                </p>
+                              )}
                               <div className="flex items-center space-x-2 ml-8 text-xs">
                                 <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded-full">
                                   {sale.quantity} units
@@ -1100,6 +1111,11 @@ const LocationSalesPage = () => {
                                 <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 rounded-full">
                                   {sale.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ETB
                                 </span>
+                                {sale.receiver && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                                    {sale.receiver}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="text-right ml-2">
@@ -1456,7 +1472,8 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
     productName: '',
     quantity: '',
     price: '',
-    description: ''
+    description: '',
+    receiver: ''
   });
   const [saleDate, setSaleDate] = useState<string>(normalizeDateString(defaultDate));
 
@@ -1471,9 +1488,12 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
       return;
     }
     const success = await onSubmit({
-      ...formData,
+      productId: formData.productId,
+      productName: formData.productName,
       quantity: parseFloat(formData.quantity),
-      price: parseFloat(formData.price)
+      price: parseFloat(formData.price),
+      description: formData.description,
+      receiver: formData.receiver
     }, saleDate);
     if (success) {
       setFormData({
@@ -1481,7 +1501,8 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
         productName: '',
         quantity: '',
         price: '',
-        description: ''
+        description: '',
+        receiver: ''
       });
       setSaleDate(new Date().toISOString().split('T')[0]);
     }
@@ -1515,6 +1536,36 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSubmit, onCancel, isSub
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             required
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
+          <select
+            value={formData.receiver}
+            onChange={(e) => setFormData(prev => ({ ...prev, receiver: e.target.value }))}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Select receiver</option>
+            {RECEIVER_OPTIONS.map(option => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
+          <select
+            value={formData.receiver}
+            onChange={(e) => setFormData(prev => ({ ...prev, receiver: e.target.value }))}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Select receiver</option>
+            {RECEIVER_OPTIONS.map(option => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
@@ -1729,6 +1780,7 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
     quantity: sale.quantity.toString(),
     price: sale.price.toString(),
     description: sale.description || '',
+    receiver: sale.receiver || '',
   });
   const [saleDate, setSaleDate] = useState<string>(sale.date);
   const selectedProduct = products.find(p => p._id === formData.productId);
@@ -1739,9 +1791,12 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
       return;
     }
     const success = await onSubmit({
-      ...formData,
+      productId: formData.productId,
+      productName: formData.productName,
       quantity: parseFloat(formData.quantity),
-      price: parseFloat(formData.price)
+      price: parseFloat(formData.price),
+      description: formData.description,
+      receiver: formData.receiver
     }, saleDate);
     if (success) {
       setFormData({
@@ -1749,7 +1804,8 @@ const EditSaleForm: React.FC<EditSaleFormProps> = ({ sale, products, onSubmit, o
         productName: '',
         quantity: '',
         price: '',
-        description: ''
+        description: '',
+        receiver: ''
       });
       setSaleDate(new Date().toISOString().split('T')[0]);
     }
@@ -1961,6 +2017,7 @@ interface BatchRow {
   productName: string;
   quantity: string;
   price: string;
+  receiver: string;
 }
 
 interface BatchSalesFormProps {
@@ -1979,7 +2036,7 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
   const [error, setError] = useState<string>('');
 
   const addRow = () => {
-    setRows(prev => ([...prev, { id: Math.random().toString(36).slice(2), productId: '', productName: '', quantity: '', price: '' }]));
+    setRows(prev => ([...prev, { id: Math.random().toString(36).slice(2), productId: '', productName: '', quantity: '', price: '', receiver: '' }]));
   };
 
   const removeRow = (id: string) => {
@@ -2019,7 +2076,8 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
           productId: r.productId,
           productName: r.productName,
           quantity: parseFloat(r.quantity),
-          price: parseFloat(r.price)
+          price: parseFloat(r.price),
+          receiver: r.receiver
         }))
       });
       onSuccess();
@@ -2070,11 +2128,26 @@ const BatchSalesForm: React.FC<BatchSalesFormProps> = ({ products, defaultDate, 
                   <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                   <input type="number" min="0.01" step="0.01" max={product?.balance || undefined} value={row.quantity} onChange={(e) => updateRow(row.id, { quantity: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
                 </div>
-                <div className="md:col-span-3">
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Price (ETB)</label>
                   <input type="number" value={row.price} onChange={(e) => updateRow(row.id, { price: e.target.value })} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required />
                 </div>
                 <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Receiver</label>
+                  <select
+                    value={row.receiver}
+                    onChange={(e) => updateRow(row.id, { receiver: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select receiver</option>
+                    {RECEIVER_OPTIONS.map(option => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-1">
                   <div className="text-sm text-gray-600 mb-1">Total</div>
                   <div className="font-medium">{row.quantity && row.price ? `${(parseFloat(row.quantity) * parseFloat(row.price)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : '—'}</div>
                 </div>
