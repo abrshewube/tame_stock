@@ -34,7 +34,7 @@ interface ExportSalesModalProps {
   singleDate?: string; // Optional: if provided, export only this date
 }
 
-const API_URL = 'https://tame.ok1bingo.com/api';
+const API_URL = 'https://tame-stock.onrender.com/api';
 
 const ExportSalesModal: React.FC<ExportSalesModalProps> = ({
   isOpen,

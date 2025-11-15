@@ -18,7 +18,7 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-const API_URL = 'https://tame.ok1bingo.com/api';
+const API_URL = 'https://tame-stock.onrender.com/api';
 const RECEIVER_OPTIONS = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret', 'Adama', 'Other'];
 
 const DailySalesPage = () => {

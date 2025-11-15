@@ -86,7 +86,7 @@ interface EditSaleFormProps {
   isSubmitting: boolean;
 }
 
-const API_URL = 'https://tame.ok1bingo.com/api';
+const API_URL = 'https://tame-stock.onrender.com/api';
 const DEFAULT_RECEIVER_ORDER = ['Tame', 'Dawit', 'Cash', 'Abraraw', 'Meseret', 'Adama'];
 const RECEIVER_OPTIONS = [...DEFAULT_RECEIVER_ORDER, 'Other'];
 
