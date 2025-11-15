@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://tame.ok1bingo.com/api';
+// const API_BASE_URL = 'https://tame.ok1bingo.com/api';
+const API_BASE_URL = 'https://tame-stock.onrender.com/api';
 
 
 // Create axios instance
